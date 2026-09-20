@@ -1,0 +1,85 @@
+# Snap Store 用（付録CH）。snap 名 replyfive は 2026-09-20 に予約済み。
+# ビルド環境に .NET は要らない：README の dotnet publish で作った packaging/out/linux-<arch> を dump するだけ。
+# 実行: clients/desktop/packaging/linux/snap/build-snap.sh [amd64|arm64]
+name: replyfive
+title: ReplyFive
+version: "0.8.0"
+summary: Turn a few words into a ready-to-send reply, right in the field you're in
+description: |
+  ReplyFive turns a few words into a ready-to-send reply that fits the conversation
+  you are looking at, and writes it straight into the field you are in. Works in
+  Slack, Teams, Gmail, Chatwork and any other text field.
+
+  It never sends for you, never stores your text, and only reads the conversation
+  pane behind the field you are replying in (via the accessibility bus) while you
+  hold the shortcut.
+
+  Requires a ReplyFive account (free trial, then a paid plan) — https://replyfive.app
+website: https://replyfive.app
+contact: https://replyfive.app/legal/tokushoho
+issues: https://replyfive.app/legal/privacy
+license: Proprietary
+icon: snap/gui/replyfive.png
+
+base: core24
+confinement: strict
+grade: stable
+compression: lzo
+
+platforms:
+  amd64:
+  arm64:
+
+apps:
+  replyfive:
+    command: bin/ReplyFive
+    desktop: usr/share/applications/app.replyfive.ReplyFive.desktop
+    extensions: [gnome]          # GTK / フォント / ポータル / 環境変数（Wayland・X11）を揃える
+    autostart: app.replyfive.ReplyFive.desktop
+    environment:
+      REPLYFIVE_DISTRIBUTION: store     # ストア版：アプリ内アップデートを切る
+      DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: "0"
+      DOTNET_BUNDLE_EXTRACT_BASE_DIR: $SNAP_USER_COMMON/.net
+    plugs:
+      - desktop
+      - desktop-legacy            # AT-SPI（org.a11y.Bus）で会話ペインを読み、入力欄へ差し込む
+      - wayland
+      - x11
+      - network
+      - opengl
+      - password-manager-service  # Secret Service に端末トークンと暗号鍵（手動接続 or 自動接続の申請）
+      - unity7                    # StatusNotifierItem（トレイ）
+      - home                      # 会話の端末内保持（$SNAP_USER_DATA でよければ外す）
+
+parts:
+  replyfive:
+    plugin: dump
+    source: ../../out/linux-$CRAFT_ARCH_BUILD_FOR
+    source-type: local
+    organize:
+      "*": bin/
+    stage-packages:
+      - libicu74
+      - libfontconfig1
+      - libx11-6
+      - libxrandr2
+      - libxi6
+      - libxcursor1
+      - libxext6
+      - xdotool                   # AT-SPI EditableText 非対応の入力欄だけ Ctrl+V（X11）
+    override-prime: |
+      craftctl default
+      chmod +x $CRAFT_PRIME/bin/ReplyFive
+  desktop-files:
+    plugin: dump
+    source: ../
+    source-type: local
+    organize:
+      app.replyfive.ReplyFive.desktop: usr/share/applications/app.replyfive.ReplyFive.desktop
+      app.replyfive.ReplyFive.metainfo.xml: usr/share/metainfo/app.replyfive.ReplyFive.metainfo.xml
+      icons/replyfive-256.png: usr/share/icons/hicolor/256x256/apps/app.replyfive.ReplyFive.png
+      icons/replyfive-512.png: usr/share/icons/hicolor/512x512/apps/app.replyfive.ReplyFive.png
+    stage:
+      - usr/share/applications/*
+      - usr/share/metainfo/*
+      - usr/share/icons/**

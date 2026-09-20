@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ReplyFive.Core/ReplyFive.Core.csproj" />
+    <Project Path="src/ReplyFive.Desktop/ReplyFive.Desktop.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ReplyFive.Core.Tests/ReplyFive.Core.Tests.csproj" />
+  </Folder>
+</Solution>

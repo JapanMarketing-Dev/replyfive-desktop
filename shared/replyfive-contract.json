@@ -1,0 +1,543 @@
+{
+  "version": "0.2",
+  "name": "ReplyFive client contract",
+  "description": "macOS・Windows・Linuxクライアントとサーバの共通契約。クライアントはこのファイルとfixtures/だけを参照して実装する。v0.1からの変更: 認証ヘッダー、端末登録、organization_policyのサーバ側適用、conversation_contextのオブジェクト化、language、エラーコードの確定。全言語対応：出力言語は会話文脈に合わせ、languageで明示指定できる。",
+  "transport": {
+    "base_url": "利用者が設定画面で変更できる。既定はSaaS URL https://replyfive.app。セルフホストは顧客のURL",
+    "content_type": "application/json; charset=utf-8",
+    "auth_header": "Authorization: Bearer <device_token>",
+    "max_request_bytes": 204800,
+    "client_timeout_ms": 10000,
+    "client_headers": {
+      "X-ReplyFive-Client": "<os>/<version>",
+      "Accept-Language": "UIの言語（エラーmessageの言語選択に使う。en/ja対応、既定en）"
+    }
+  },
+  "endpoints": {
+    "GET /healthz": {
+      "auth": false,
+      "response": {
+        "ok": true
+      }
+    },
+    "GET /v1/meta": {
+      "auth": false,
+      "response": {
+        "mode": "saas|selfhost",
+        "version": "string",
+        "llm": {
+          "provider": "groq|bedrock|mock",
+          "model": "string"
+        },
+        "contract_version": "0.2",
+        "latest_client": {
+          "macos": {
+            "version": "string|null",
+            "download_url": "string"
+          },
+          "windows": {
+            "version": "string|null",
+            "download_url": "string"
+          },
+          "linux": {
+            "version": "string|null",
+            "download_url": "string"
+          }
+        }
+      }
+    },
+    "GET /v1/devices/self": {
+      "auth": true,
+      "response": {
+        "device": {
+          "id": "string",
+          "name": "string",
+          "user_name": "string（付録CD。利用者が初回設定で確認した自分の名前。未設定なら空）"
+        },
+        "organization": {
+          "id": "string",
+          "name": "string"
+        },
+        "entitlement": {
+          "mode": "saas|selfhost",
+          "status": "trial|active|inactive|license_active|license_grace|license_expired",
+          "trial": "object|null: {days_left: integer, ends_at: RFC3339}",
+          "seats": {
+            "used": "integer",
+            "limit": "integer|null"
+          },
+          "daily_limit": "integer|null"
+        },
+        "policy": {
+          "learning_allowed": "boolean",
+          "context_capture_allowed": "boolean"
+        },
+        "client": {
+          "latest_version": "string|null",
+          "download_url": "string"
+        }
+      }
+    },
+    "POST /v1/devices/register": {
+      "auth": false,
+      "request": {
+        "link_token": "string（付録BF。アプリの「サインイン」が開いた <server>/admin/?connect=1 でサインイン後、ブラウザが replyfive://connect?server=…&link=… で返す 10 分有効の署名トークン。招待コードは廃止）",
+        "device_name": "string(max 80)",
+        "os": "macos|windows|linux",
+        "client_version": "string",
+        "install_id": "string（任意。成長計測：端末が初回起動で作る UUID。登録前に匿名で送ったイベントと組織を結ぶ）",
+        "user_name": "string(max 100)（任意、付録CD。利用者が初回設定で確認した自分の名前。管理画面の端末一覧に「利用者」として出す）"
+      },
+      "response": {
+        "device_token": "string (一度だけ返る。Keychain等に保存)",
+        "device_id": "string",
+        "organization": {
+          "id": "string",
+          "name": "string"
+        },
+        "entitlement": "same shape as GET /v1/devices/self.entitlement",
+        "policy": "same shape as GET /v1/devices/self.policy"
+      },
+      "errors": [
+        "invalid_link",
+        "seat_limit_reached",
+        "license_expired"
+      ]
+    },
+    "DELETE /v1/devices/self": {
+      "auth": true,
+      "response": {
+        "ok": true
+      }
+    },
+    "POST /v1/format": {
+      "auth": true,
+      "request": "format_request",
+      "response": "format_response"
+    },
+    "POST /v1/feedback": {
+      "auth": true,
+      "_note": "付録BC：修正率の計測。本文（意図・文脈・生成文・最終文）は一切含めない。失敗しても利用者体験に影響させない（fire-and-forget）",
+      "request": "feedback_request",
+      "response": {
+        "ok": true
+      }
+    },
+    "POST /v1/events": {
+      "auth": "optional（端末トークンがあれば組織・端末に紐付く。無ければ install_id だけで events_request._anonymous の名前に限って受理）",
+      "_note": "成長計測（docs/marketing/growth-analytics.md）。本文は一切含めない。名前は固定語彙、props は語彙ごとの鍵だけ（未知の鍵は捨てる、文字列は 64 文字まで）。1 回 100 件まで。端末は JSONL キューに溜めて起動時・パネルを閉じたとき・60 秒ごとに送り、失敗しても捨てない（500 件で古い順に捨てる）",
+      "request": "events_request",
+      "response": {
+        "accepted": "integer（受理した件数）"
+      },
+      "errors": [
+        "invalid_install_id",
+        "too_many_events",
+        "rate_limited"
+      ]
+    },
+    "GET /v1/ops/growth/summary": {
+      "auth": "OPS_TOKEN（Bearer）。未設定なら 404",
+      "_note": "運用者向け。登録週ごとのファネル・転換率・維持率・週次利用。詳細は docs/marketing/growth-analytics.md §5"
+    },
+    "GET /v1/ops/growth/orgs": {
+      "auth": "OPS_TOKEN（Bearer）",
+      "_note": "組織ごとの特徴量（個人情報なし）。AI の分析入力"
+    },
+    "GET /v1/ops/growth/events": {
+      "auth": "OPS_TOKEN（Bearer）",
+      "query": {
+        "from": "RFC3339",
+        "to": "RFC3339",
+        "org_id": "string（任意）",
+        "limit": "integer（max 1000）",
+        "cursor": "string（前回の cursor）"
+      }
+    },
+    "PUT /v1/devices/self": {
+      "auth": true,
+      "_note": "付録CD：端末名と利用者名の更新。初回設定の完了時と、設定で名前を変えたときに送る。省略・空の項目は変更しない。x-replyfive-client ヘッダの版も端末に記録する",
+      "request": {
+        "device_name": "string(max 80)|omitted",
+        "user_name": "string(max 100)|omitted"
+      },
+      "response": {
+        "ok": true,
+        "device": {
+          "id": "string",
+          "name": "string",
+          "user_name": "string"
+        }
+      }
+    },
+    "POST /v1/style/profile": {
+      "auth": true,
+      "_note": "付録CD：初回設定で利用者が自分の言葉で書いた返信（最大 5 件、各 1,000 文字）から文体のラベルを Jev で判定する。本文は判定にだけ使い、保存・ログ・分析に出さない。判定器が無い・失敗したときも 200（source=none、profile は空）",
+      "request": {
+        "samples": "array of {received: string(max 2000, 見せた相手のメッセージ), reply: string(max 1000, 利用者が書いた返信)}"
+      },
+      "response": {
+        "profile": "sender.style と同じ形（固定語彙のラベルだけ）",
+        "confidence": "object: 項目名 → 0..1",
+        "source": "jev|static|none",
+        "elapsed_ms": "integer"
+      }
+    },
+    "POST /v1/context/filter": {
+      "auth": true,
+      "_note": "付録BV：端末が画面から読んだ発言のうち「人が書いた発言」だけを端末内の会話 index に保存するための判定。サーバは本文を判定にだけ使い、保存・ログ・分析に出さない。判定できないときも 200（source=none、keep は全部 true）。端末は失敗時に規則だけで保存する",
+      "request": "context_filter_request",
+      "response": "context_filter_response"
+    },
+    "GET /v1/admin/quality": {
+      "auth": "admin session",
+      "query": {
+        "days": "integer (default 30, max 90)"
+      },
+      "response": {
+        "days": "integer",
+        "total": "integer",
+        "rows": [
+          {
+            "reply_kind": "string",
+            "count": "integer",
+            "edited": "integer",
+            "edit_ratio_avg": "0..1",
+            "edit_chars_avg": "number（付録BG：1 件あたりの平均修正文字数。レーベンシュタイン距離の平均）",
+            "verified": "integer",
+            "regenerated": "integer",
+            "candidate_offered": "integer",
+            "candidate_chosen": "integer"
+          }
+        ]
+      }
+    }
+  },
+  "events_request": {
+    "install_id": "string（8〜64 文字の [A-Za-z0-9_-]。UUID）",
+    "events": [
+      {
+        "name": "app_launched|daily_active|onboarding_shown|onboarding_completed|accessibility_granted|sign_in_opened|connect_succeeded|connect_failed|hotkey_pressed|panel_closed|insert_completed|billing_opened|trial_banner_shown|settings_changed|update_opened|app_terminated",
+        "ts": "RFC3339（端末時刻。1 時間より未来・30 日より過去はサーバ時刻に置き換える）",
+        "props": "名前ごとの鍵（docs/marketing/growth-analytics.md §3.1。server/internal/growth/vocab.go が正）"
+      }
+    ],
+    "_anonymous": "端末トークン無しで受理する名前：app_launched daily_active onboarding_shown onboarding_completed accessibility_granted sign_in_opened connect_failed hotkey_pressed panel_closed app_terminated settings_changed"
+  },
+  "feedback_request": {
+    "request_id": "uuid（format_response.request_id）",
+    "reply_kind": "format_response.classification.reply_kind（無ければ \"unknown\"）",
+    "reply_kind_confidence": "0..1",
+    "asks": "format_response.classification.asks（任意）",
+    "intent_form": "format_response.classification.intent_form（任意）",
+    "meaning_verified": "boolean",
+    "regenerated": "boolean（format_response.verification.regenerated）",
+    "candidate_offered": "boolean（candidates が 1 件以上あったか）",
+    "candidate_chosen": "boolean（利用者が候補側を選んだか）",
+    "action": "insert|copy|dismiss",
+    "edited": "boolean（挿入・コピー時点で生成文と最終文が異なるか）",
+    "edit_ratio": "0..1（正規化レーベンシュタイン距離。dismiss では 0）",
+    "edit_chars": "integer（付録BG：生成文と最終文のレーベンシュタイン距離＝修正文字数。dismiss では 0。修正されないことが KPI）",
+    "client": {
+      "os": "macos|windows|linux",
+      "version": "string"
+    }
+  },
+  "context_filter_request": {
+    "platform": "format_request.platform と同じ語彙",
+    "contact_name": "string（任意）",
+    "messages": "conversation_context.messages と同じ形（role|sender|text）。最大 60 件、合計 20,000 文字。新しく読んだ発言だけを送る"
+  },
+  "context_filter_response": {
+    "keep": "boolean[]（messages と同じ順。true＝人が書いた発言として保存する）",
+    "probabilities": "number[]（0..1。「発言である」確率。閾値 0.5）",
+    "source": "jev|none",
+    "elapsed_ms": "integer"
+  },
+  "format_request": {
+    "platform": {
+      "enum": [
+        "gmail",
+        "outlook",
+        "slack",
+        "teams",
+        "chatwork",
+        "line",
+        "lineworks",
+        "googlechat",
+        "generic"
+      ],
+      "default": "generic"
+    },
+    "recipient_type": {
+      "enum": [
+        "customer",
+        "partner",
+        "internal",
+        "external"
+      ],
+      "default": "external"
+    },
+    "tone": {
+      "enum": [
+        "natural",
+        "polite",
+        "short"
+      ],
+      "default": "natural"
+    },
+    "language": {
+      "type": "string",
+      "default": "auto",
+      "description": "auto なら会話文脈の言語（無ければ入力の言語）で出力。BCP-47タグ（ja, en, de, pt-BR…）で固定できる"
+    },
+    "user_intent": {
+      "type": "string",
+      "min_chars": 1,
+      "max_chars": 2000,
+      "required": true,
+      "description": "auto_intent が true のときだけ空でよい（付録CF）"
+    },
+    "auto_intent": {
+      "type": "boolean",
+      "optional": true,
+      "description": "付録CF：意図なしの提案モード。true なら user_intent は空でよく、サーバは conversation_context だけから「利用者が次に送りそうな返信」を書く（決定・事実・日付は作らず、答えられないことは保留の返事）。conversation_context が無ければ user_intent_required。種別判定・別案・意味検証・文脈の絞り込みは行わない。初回設定で相手ごとの返信案に yes/no するために使う"
+    },
+    "conversation_context": {
+      "source": {
+        "enum": [
+          "selected_text",
+          "window",
+          "clipboard",
+          "none"
+        ],
+        "description": "selected_text: 利用者が選択した文。window: 選択が無いとき、ショートカット押下時に1回だけ前面ウインドウの可視テキスト（末尾5,000文字）を読んだもの。clipboard: Accessibility 未許可時のクリップボード。none: 無し"
+      },
+      "app_name": "string|null (OSが返す表示名。正規化前)",
+      "contact_name": "string|null (付録BE。返信相手の表示名。端末が前面ウインドウの可視テキストから、入力欄の直上にある最後のメッセージの送信者を推定した値。利用者自身の呼び名と一致するものは除く。100 文字まで。サーバはプロンプトの宛名判定にだけ使い、保存もログ出力もしない。無ければ省略)",
+      "messages": "array|null (付録BS。相手／自分に分けた会話。各要素 {role: other|me|unknown, sender: string|null, text: string}。あればサーバは text より優先し、末尾から合計 5,000 文字ぶんだけ使う。role=me が最後なら『自分の直前の発言への続き』として返信を作る。保存もログ出力もしない)",
+      "text": {
+        "type": "string",
+        "max_chars": 5000
+      }
+    },
+    "learned_examples": {
+      "_note": "付録BD・BG：端末が収集した「この相手・媒体への過去の返信」（意図と実際に送った文）。修正の有無を問わず記録し、関連しそうな順（同じ相手→同じ媒体→その他）に最大 10 件送る。サーバは Jev の関連度判定で 3 件に絞ってモデルへ渡す（判定が無ければ先頭 3 件）。フィールド名は互換のため learned_examples のまま",
+      "max_items": 10,
+      "max_items_sent_to_model": 3,
+      "item": {
+        "intent": {
+          "max_chars": 500
+        },
+        "corrected": {
+          "max_chars": 1000
+        }
+      }
+    },
+    "sender": {
+      "name": {
+        "type": "string",
+        "max_chars": 100,
+        "optional": true,
+        "description": "利用者自身の呼び名（例: 遠藤, Takumi）。文脈中の宛名（自分宛）と差出人（相手）を取り違えないために使う。利用者が初回設定で確認・編集した値だけを送り、生成処理では保存しない（付録CD：同じ名前を端末の「利用者」として PUT /v1/devices/self で別途登録する）。無ければ省略"
+      },
+      "style": {
+        "type": "object",
+        "optional": true,
+        "description": "付録CD：利用者自身の文体ラベル。POST /v1/style/profile の結果を端末が保持し、利用者が最適化画面で確認・調整した値。固定語彙だけで、語彙外の値はサーバが無視する。system プロンプトへはラベルに対応する固定文だけを入れる。同じ相手の learned_examples があればそちらを優先する",
+        "fields": {
+          "formality": "casual|standard|formal",
+          "length": "short|medium|long",
+          "greeting": "none|light|formal",
+          "closing": "none|light|formal",
+          "emoji": "none|some"
+        }
+      }
+    },
+    "client": {
+      "os": "macos|windows|linux",
+      "version": "string"
+    }
+  },
+  "format_response": {
+    "text": "string",
+    "provider": "groq|bedrock|mock",
+    "model": "string",
+    "meaning_verified": "boolean（付録BC：verification.passed が true のとき true。検証なし・失敗・タイムアウトは false）",
+    "context_supplied": "boolean",
+    "policy_applied": "boolean",
+    "request_id": "uuid",
+    "elapsed_ms": "integer",
+    "warnings": [
+      "license_expired_grace",
+      "context_ignored_by_policy",
+      "learning_ignored_by_policy"
+    ],
+    "language": "auto|BCP-47（リクエストで解決した値）",
+    "classification": {
+      "_note": "任意（付録BB・BC）。サーバの Jev 事前判定が有効で成功したときだけ付く。本文は含まない。クライアントは無視してよい",
+      "reply_kind": "accept|decline|conditional|inform|request|acknowledge|apologize|remind|other",
+      "reply_kind_confidence": "0..1",
+      "asks": "decision|information|schedule|deliverable|confirmation|none（文脈が無いときは省略）",
+      "asks_confidence": "0..1",
+      "formality": "0 casual | 1 standard business | 2 formal | -1 判定なし",
+      "formality_confidence": "0..1",
+      "context_related": "0..1（文脈が無いときは -1）",
+      "intent_form": "note|complete|noise（意図が短いメモか、すでに完成した文か、意味のない入力か）",
+      "intent_form_confidence": "0..1",
+      "covers_ask": "0..1（意図が相手の要求に答えているか。文脈が無いときは -1）",
+      "source": "jev",
+      "elapsed_ms": "integer"
+    },
+    "hints": {
+      "_note": "任意（付録BC）。パネルに出す注意。本文は含まない",
+      "enum": [
+        "ask_unanswered",
+        "policy_rule_flagged"
+      ],
+      "ask_unanswered": "classification.asks（decision|information|schedule|deliverable）を意図が満たしていない可能性が高い。文言は asks に応じてクライアントが選ぶ",
+      "policy_rule_flagged": "付録BD：作り直しても組織ルール（policy.rules）に反する疑いが残る。挿入前に確認を促す"
+    },
+    "verification": {
+      "_note": "任意（付録BC）。生成後に Jev で意味を検証した結果。passed のとき meaning_verified も true",
+      "passed": "boolean",
+      "issues": [
+        "fact_changed",
+        "commitment_added",
+        "detail_invented",
+        "name_invented",
+        "addressed_to_user",
+        "language_mismatch",
+        "policy_rule"
+      ],
+      "regenerated": "boolean（不合格で 1 回だけ作り直したか）",
+      "source": "jev",
+      "elapsed_ms": "integer"
+    },
+    "candidates": {
+      "_note": "任意（付録BC）。reply_kind の確信度が低いとき、2 番目に確からしい種別で並列生成した別案。text が主案。組織ポリシー（接頭辞・署名・禁止語）は適用済み",
+      "items": [
+        {
+          "reply_kind": "accept|decline|conditional|inform|request|acknowledge|apologize|remind",
+          "text": "string"
+        }
+      ]
+    },
+    "context_filter": {
+      "_note": "任意（付録BV）。会話形式の文脈を Jev で「発言か」「今回の返信に要るか」で絞ってから LLM へ渡した結果。本文は含まない。直近 6 件は関連度に関わらず残す",
+      "kept": "integer",
+      "dropped": "integer",
+      "source": "jev"
+    }
+  },
+  "errors": {
+    "shape": {
+      "error": "code",
+      "message": "利用者向け文言（任意。Accept-Languageで en/ja）"
+    },
+    "codes": {
+      "invalid_json": {
+        "status": 400,
+        "client": "入力を見直す"
+      },
+      "user_intent_required": {
+        "status": 400,
+        "client": "入力欄へフォーカス"
+      },
+      "user_intent_too_long": {
+        "status": 400,
+        "client": "文字数を示す"
+      },
+      "context_too_long": {
+        "status": 400,
+        "client": "クライアント側で5000文字に切ってから送る。通常は起きない"
+      },
+      "invalid_platform": {
+        "status": 400,
+        "client": "genericで再送"
+      },
+      "prohibited_phrase": {
+        "status": 422,
+        "client": "組織ルールの禁止表現を表示"
+      },
+      "prohibited_output": {
+        "status": 422,
+        "client": "再生成を促す"
+      },
+      "unauthorized": {
+        "status": 401,
+        "client": "端末登録画面へ"
+      },
+      "device_revoked": {
+        "status": 401,
+        "client": "端末登録画面へ。保存トークンを削除"
+      },
+      "invalid_link": {
+        "status": 403,
+        "client": "「サインイン」をやり直す（リンクは 10 分で失効）"
+      },
+      "seat_limit_reached": {
+        "status": 403,
+        "client": "管理者へ連絡を促す"
+      },
+      "license_expired": {
+        "status": 403,
+        "client": "管理者へ連絡を促す。端末側下書きは表示してよい"
+      },
+      "payload_too_large": {
+        "status": 413,
+        "client": "通常は起きない"
+      },
+      "llm_not_configured": {
+        "status": 503,
+        "client": "端末側下書きを維持し、サーバ未設定を表示"
+      },
+      "llm_timeout": {
+        "status": 504,
+        "client": "端末側下書きを維持し、再試行ボタンを出す"
+      },
+      "llm_unavailable": {
+        "status": 502,
+        "client": "同上"
+      },
+      "incomplete_generation": {
+        "status": 502,
+        "client": "再生成を促す"
+      },
+      "subscription_inactive": {
+        "status": 403,
+        "client": "無料トライアル終了か未契約（SaaSのみ）。管理画面の請求ページを開く導線を出す。端末側下書きは残す"
+      },
+      "rate_limited": {
+        "status": 429,
+        "client": "当日のフェアユース上限（席数×DAILY_LIMIT_PER_SEAT、既定200）。翌日（UTC）まで待つ。端末側下書きは残す（SaaSのみ）"
+      }
+    }
+  },
+  "local_draft": {
+    "description": "付録AA。利用者が生成を押した瞬間にクライアントが表示する端末側整形。サーバ応答が来たら置き換える。fixtures/local-draft.jsonで各クライアントが同じ結果を返すことを確認する。参照実装は server/internal/draft",
+    "rules": [
+      "前後の空白と連続改行(3つ以上)を整える",
+      "スクリプト判定: ひらがな/カタカナがあれば ja、漢字のみなら zh、ラテン文字なら en、それ以外 other",
+      "各行の末尾に終端記号（。！？.!?,:; と閉じ括弧・引用符）がなければ、ja/zh は「。」、それ以外は「.」を付ける",
+      "ja かつ platform が gmail/outlook かつ recipient_type が customer/partner/external なら、冒頭に「お世話になっております。」、末尾に「よろしくお願いいたします。」を無ければ付ける",
+      "ja 以外では定型句を付けない（ラテン文字は言語を判別できないため）"
+    ]
+  },
+  "platform_detection": {
+    "description": "付録AE/AG/AH。OSの表示名と選択テキストからplatformを決める。fixtures/platform-detection.jsonが正。判定できなければgeneric",
+    "order": [
+      "app_nameを小文字化し、ブラウザ名(chrome/safari/edge/firefox/arc/brave)なら本文ヒントで判定",
+      "app_nameに slack→slack, teams→teams, chatwork→chatwork, line works|lineworks→lineworks, 単独line→line, google chat→googlechat, outlook→outlook, mail|gmail→gmail",
+      "本文ヒント: mail.google.com|gmail→gmail, outlook.office|outlook.live→outlook, app.slack.com|slack.com→slack, teams.microsoft.com|teams.live.com→teams, chatwork.com→chatwork, line.worksmobile.com|works.do→lineworks, chat.google.com→googlechat",
+      "該当なし→generic"
+    ]
+  },
+  "privacy": [
+    "サーバは会話文脈・入力・生成文・修正例を保存しない。ログにも出さない。DBに持つのは課金に必要なもの（組織、契約状態、席数、端末トークンのハッシュ、日別利用回数）だけ",
+    "クライアントは会話文脈と生成文をメモリだけで扱い、ウインドウを閉じたら破棄する",
+    "相手別の返信の記録（収集）はインストール時からオン。挿入・コピーのたびに意図・生成文・最終文・媒体・アプリ名・相手キー（ハッシュ）・修正文字数を端末内に暗号化して最大30件保存し、会話本文は保存しない。生成時は最大10件を送りサーバが3件に絞る。利用者は設定でオフにでき、全削除できる。組織が禁止すれば送らない。修正文字数と修正率は本文なしでサーバへ送り KPI として集計する（付録BG）",
+    "クライアントは会話文脈・生成文・修正例を分析やクラッシュレポートへ含めない",
+    "端末名は利用者が編集でき、既定はOS名。ホスト名やユーザー名を自動送信しない。返信の宛名判定に使う呼び名（sender.name）は利用者が初回設定で確認・編集した値だけを送り、サーバは保存しない"
+  ]
+}

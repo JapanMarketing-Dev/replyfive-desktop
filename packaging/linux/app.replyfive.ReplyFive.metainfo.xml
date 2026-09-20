@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- AppStream metainfo（Snap Store・Flathub 共通、付録CH）。日本語の文言は docs/store-listing/ の Gemini 校正済み文面と同じにする。
+     appstreamcli validate の規則：description を言語ごとに分けず、各 p / li に xml:lang を付ける（分けると metainfo-localized-description-tag エラー）。本文に生 URL を書かない（description-has-plaintext-url 警告）。 -->
+<component type="desktop-application">
+  <id>app.replyfive.ReplyFive</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LicenseRef-proprietary</project_license>
+  <name>ReplyFive</name>
+  <summary>Write replies in five seconds</summary>
+  <summary xml:lang="ja">ひとことで整った返信を作成し元の入力欄に差し込みます</summary>
+  <developer id="co.jp.japan-marketing">
+    <name>JapanMarketing LLC</name>
+    <name xml:lang="ja">JapanMarketing合同会社</name>
+  </developer>
+  <description>
+    <p>ReplyFive turns a few words into a ready-to-send reply that fits the conversation you are looking at, and writes it straight into the field you are in. Works in Slack, Teams, Gmail, Chatwork and any other text field.</p>
+    <p xml:lang="ja">ReplyFive は、伝えたいことをひとこと入力するだけで、宛名・挨拶・結びまで整ったビジネスメールやビジネスチャットの返信を元の入力欄に差し込むデスクトップアプリです。Slack、Teams、Gmail、Outlook、Chatwork など、普段お使いのアプリの入力欄でそのまま動作します。</p>
+    <p>Press the shortcut in any reply field, type what you want to say, and ReplyFive writes the full reply — greeting, body and closing — in the language of the conversation. Press Return to insert it into the original field. Nothing is sent automatically.</p>
+    <p xml:lang="ja">返信欄にカーソルを置き、Ctrl+Shift+R を押します。言いたいことをひとこと入力すると、会話の言語に合わせて返信の全文が生成されます。Return を押して元の入力欄に差し込みます。送信はご自身で行います。</p>
+    <ul>
+      <li>Reads only the conversation pane behind the field you are replying in, and only while you use it</li>
+      <li xml:lang="ja">関係のない画面を読み取りません。読み取る対象は返信中の入力欄の背面にある会話ペインのみであり、ショートカットの押下中またはパネルを開いている間のみ動作します。他のウインドウは読みません。</li>
+      <li>Never sends a message for you</li>
+      <li xml:lang="ja">メッセージを勝手に送信しません。送信の実行は必ず利用者が行います。</li>
+      <li>Never stores the text of your conversations on the server</li>
+      <li xml:lang="ja">会話の本文をサーバに保存しません。</li>
+      <li>Learns how you reply to each contact, on your device, encrypted</li>
+      <li xml:lang="ja">相手ごとの返し方は、端末内に暗号化して記録し、次回以降の作成時に活用します。</li>
+    </ul>
+    <p>Requires a ReplyFive account. Free trial, then a paid plan (Lite, Pro or Team). See the ReplyFive website for pricing.</p>
+    <p xml:lang="ja">ご利用には ReplyFive のアカウントが必要です。無料トライアルをご利用いただいた後、Lite、Pro、Team の有料プランへ移行できます。ご購入のお手続きは ReplyFive のWebサイトで行います。アプリ内課金はありません。詳しい料金体系は ReplyFive のWebサイトをご確認ください。</p>
+  </description>
+  <launchable type="desktop-id">app.replyfive.ReplyFive.desktop</launchable>
+  <url type="homepage">https://replyfive.app</url>
+  <url type="help">https://replyfive.app</url>
+  <url type="contact">https://replyfive.app/legal/tokushoho</url>
+  <url type="vcs-browser">https://github.com/JapanMarketing-Dev/ReplyFive</url>
+  <branding>
+    <color type="primary" scheme_preference="light">#215cfa</color>
+    <color type="primary" scheme_preference="dark">#1a4ad6</color>
+  </branding>
+  <screenshots>
+    <!-- 公開前に実画面（1280×800 以上、Linux で撮影）へ差し替える。Flathub は最低 1 枚、HTTPS 必須 -->
+    <screenshot type="default">
+      <caption>Type a few words, get a full reply in the conversation's language</caption>
+      <caption xml:lang="ja">ひとこと入力で会話言語に沿った返信全文を作成</caption>
+      <image>https://replyfive.app/img/store/linux-1.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Return inserts the reply into the original field — nothing is sent for you</caption>
+      <caption xml:lang="ja">Return で元の入力欄へ。自動送信はしません</caption>
+      <image>https://replyfive.app/img/store/linux-2.png</image>
+    </screenshot>
+  </screenshots>
+  <content_rating type="oars-1.1" />
+  <requires>
+    <display_length compare="ge">360</display_length>
+    <internet>always</internet>
+  </requires>
+  <supports>
+    <control>keyboard</control>
+    <control>pointing</control>
+  </supports>
+  <keywords>
+    <keyword>reply</keyword>
+    <keyword>email</keyword>
+    <keyword>chat</keyword>
+    <keyword>writing</keyword>
+    <keyword xml:lang="ja">返信</keyword>
+    <keyword xml:lang="ja">メール</keyword>
+  </keywords>
+  <releases>
+    <release version="0.8.0" date="2026-09-20">
+      <description><p>First Windows and Linux release.</p><p xml:lang="ja">Windows 版・Linux 版の最初の公開。</p></description>
+    </release>
+  </releases>
+</component>

@@ -1,0 +1,15 @@
+[
+  {"name": "ja slack short text gets terminator only", "platform": "slack", "recipient_type": "internal", "text": "了解です 明日対応します", "expected": "了解です 明日対応します。"},
+  {"name": "ja trims and collapses blank lines", "platform": "generic", "recipient_type": "external", "text": "  ありがとうございます。\n\n\n\n確認します  ", "expected": "ありがとうございます。\n\n確認します。"},
+  {"name": "ja gmail external adds greeting and closing", "platform": "gmail", "recipient_type": "customer", "text": "承知しました。金曜に送ります", "expected": "お世話になっております。\n承知しました。金曜に送ります。\nよろしくお願いいたします。"},
+  {"name": "ja gmail internal adds nothing", "platform": "gmail", "recipient_type": "internal", "text": "金曜に送ります", "expected": "金曜に送ります。"},
+  {"name": "ja outlook partner keeps existing greeting", "platform": "outlook", "recipient_type": "partner", "text": "お世話になっております。\n資料を確認しました。\nよろしくお願いいたします。", "expected": "お世話になっております。\n資料を確認しました。\nよろしくお願いいたします。"},
+  {"name": "ja question mark kept", "platform": "line", "recipient_type": "external", "text": "何時がいいですか？", "expected": "何時がいいですか？"},
+  {"name": "ja closing bracket kept", "platform": "chatwork", "recipient_type": "partner", "text": "資料（改訂版）", "expected": "資料（改訂版）"},
+  {"name": "en slack gets period only", "platform": "slack", "recipient_type": "internal", "text": "got it, will do tomorrow", "expected": "got it, will do tomorrow."},
+  {"name": "en gmail customer gets period only, no boilerplate", "platform": "gmail", "recipient_type": "customer", "text": "Sounds good. I will send it on Friday", "expected": "Sounds good. I will send it on Friday."},
+  {"name": "en lines ending with comma or colon are kept", "platform": "gmail", "recipient_type": "partner", "text": "Hello,\nThanks for the update\nBest regards,", "expected": "Hello,\nThanks for the update.\nBest regards,"},
+  {"name": "de gets period, no boilerplate", "platform": "gmail", "recipient_type": "customer", "text": "Vielen Dank, ich melde mich am Freitag", "expected": "Vielen Dank, ich melde mich am Freitag."},
+  {"name": "zh han-only gets full-width stop but no ja boilerplate", "platform": "gmail", "recipient_type": "customer", "text": "收到，周五发送", "expected": "收到，周五发送。"},
+  {"name": "empty stays empty", "platform": "gmail", "recipient_type": "customer", "text": "   ", "expected": ""}
+]

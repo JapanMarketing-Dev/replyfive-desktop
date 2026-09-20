@@ -1,0 +1,16 @@
+# Linux 配布物（AppImage / .deb）をこの Mac のコンテナで作って検証するための環境。
+# 使い方: tests/linux-packaging/run.sh（publish 済みの dist/linux-<arch> を包む。dotnet は要らない）
+FROM ubuntu:24.04
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    dpkg-dev desktop-file-utils appstream file curl ca-certificates zsync squashfs-tools libfuse2t64 \
+    libicu74 libx11-6 libsecret-1-0 libfontconfig1 libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+ARG TARGETARCH
+RUN case "$(uname -m)" in aarch64) A=aarch64;; *) A=x86_64;; esac; \
+    curl -fsSL -o /usr/local/bin/appimagetool "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-$A.AppImage" \
+    && chmod +x /usr/local/bin/appimagetool
+WORKDIR /work
+COPY inside.sh ./
+RUN chmod +x inside.sh
+ENTRYPOINT ["./inside.sh"]

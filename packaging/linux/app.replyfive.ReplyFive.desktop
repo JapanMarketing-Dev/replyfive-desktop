@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Name=ReplyFive
+Name[ja]=ReplyFive
+Comment=Turn a few words into a ready-to-send reply, right in the field you're in
+Comment[ja]=ひとことで整った返信を作成し元の入力欄に差し込みます
+Exec=ReplyFive %u
+Icon=app.replyfive.ReplyFive
+Terminal=false
+Categories=Office;Utility;
+Keywords=reply;email;chat;writing;assistant;返信;メール;チャット;
+MimeType=x-scheme-handler/replyfive;
+StartupNotify=false
+X-GNOME-Autostart-enabled=true
+X-GNOME-UsesNotifications=false

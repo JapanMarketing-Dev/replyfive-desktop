@@ -1,0 +1,13 @@
+/* Linux。会話の読み取りと差し込みは AT-SPI2（デスクトップのアクセシビリティ機能）が有効なときに動く。 */
+"settings.ui_language.system" = "Same as the desktop";
+"menu.allow_accessibility" = "Enable accessibility (AT-SPI)…";
+"settings.accessibility.title" = "Accessibility (AT-SPI)";
+"settings.accessibility.body" = "Needed to read the conversation on screen and to insert the reply into the app you are using. ReplyFive turns on the desktop accessibility bus; some apps need to be restarted once.";
+"settings.accessibility.open" = "Enable…";
+"onboarding.step1.title" = "Enable accessibility (AT-SPI)";
+"onboarding.step1.body" = "Needed to read the message on screen and put the reply into the field you were in. ReplyFive turns on the desktop accessibility bus; some apps need to be restarted once.";
+"panel.context.no_permission_title" = "Desktop accessibility is turned off";
+"panel.context.no_permission" = "ReplyFive cannot read the conversation while the desktop accessibility bus (AT-SPI) is off. Click Enable, restart the chat app if needed, then press the shortcut again.";
+"panel.context.allow" = "Enable…";
+"panel.context.screen_title" = "%@ does not share its conversation with ReplyFive";
+"panel.context.screen_body" = "This app does not expose its text through accessibility. Select the message you are replying to and press the shortcut again, and ReplyFive will use the selection.";

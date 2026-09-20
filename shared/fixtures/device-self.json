@@ -1,0 +1,61 @@
+{
+  "examples": [
+    {
+      "name": "saas trial",
+      "response": {
+        "device": {"id": "device-trial", "name": "Alice's Mac"},
+        "organization": {"id": "org-trial", "name": "Acme"},
+        "entitlement": {
+          "mode": "saas",
+          "status": "trial",
+          "trial": {"days_left": 12, "ends_at": "2026-10-01T00:00:00Z"},
+          "seats": {"used": 1, "limit": 3},
+          "daily_limit": 600
+        },
+        "policy": {"learning_allowed": true, "context_capture_allowed": true},
+        "client": {
+          "latest_version": "0.4.0",
+          "download_url": "https://replyfive.app/download/macos"
+        }
+      }
+    },
+    {
+      "name": "saas active with learning disabled",
+      "response": {
+        "device": {"id": "device-active", "name": "Bob's Mac"},
+        "organization": {"id": "org-active", "name": "Example Co"},
+        "entitlement": {
+          "mode": "saas",
+          "status": "active",
+          "trial": null,
+          "seats": {"used": 3, "limit": 10},
+          "daily_limit": 2000
+        },
+        "policy": {"learning_allowed": false, "context_capture_allowed": true},
+        "client": {
+          "latest_version": null,
+          "download_url": "https://replyfive.app/download/macos"
+        }
+      }
+    },
+    {
+      "name": "self-host license grace",
+      "response": {
+        "device": {"id": "device-grace", "name": "Carol's Mac"},
+        "organization": {"id": "org-grace", "name": "Contoso"},
+        "entitlement": {
+          "mode": "selfhost",
+          "status": "license_grace",
+          "trial": null,
+          "seats": {"used": 4, "limit": 20},
+          "daily_limit": null
+        },
+        "policy": {"learning_allowed": true, "context_capture_allowed": false},
+        "client": {
+          "latest_version": "0.4.0",
+          "download_url": "https://replyfive.app/download/macos"
+        }
+      }
+    }
+  ]
+}

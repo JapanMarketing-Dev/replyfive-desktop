@@ -1,0 +1,3 @@
+/* Windows の日本語。 */
+"settings.ui_language.system" = "Windows の設定に合わせる";
+"panel.context.screen_body" = "ショートカットを押したときに、画面に表示されている会話を読み取ります（1 回のみ取得し、保存はしません）。もう一度ショートカットを押してください。";

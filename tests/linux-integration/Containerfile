@@ -1,0 +1,14 @@
+# Linux 層の結合テスト（ヘッドレス）。Xvfb + D-Bus + AT-SPI2 + GTK3 の会話アプリを立て、publish 済みの ReplyFive を動かして
+# 「X11 ショートカット → AT-SPI で会話を読む → サーバで生成 → AT-SPI で入力欄へ差し込む」を確かめる。
+# 使い方: tests/linux-integration/run.sh（podman か docker）
+FROM ubuntu:24.04
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    xvfb dbus-x11 at-spi2-core python3-gi gir1.2-gtk-3.0 xdotool x11-utils xclip \
+    libicu74 libx11-6 libxext6 libxrandr2 libxi6 libxcursor1 libxfixes3 libfontconfig1 libglib2.0-0 libsecret-1-0 \
+    fonts-noto-cjk ca-certificates curl python3 gnome-keyring libsecret-tools imagemagick openssl \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /work
+COPY chat_app.py inside.sh ./
+RUN chmod +x inside.sh
+ENTRYPOINT ["./inside.sh"]

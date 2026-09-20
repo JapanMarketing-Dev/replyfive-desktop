@@ -1,0 +1,71 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!-- net10.0 は Linux（と開発確認用の macOS）、net10.0-windows は Windows（UI Automation・OCR・DPAPI）。 -->
+    <TargetFrameworks>net10.0;net10.0-windows10.0.19041.0</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>ReplyFive.Desktop</RootNamespace>
+    <AssemblyName>ReplyFive</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets/replyfive.ico</ApplicationIcon>
+    <Version>0.8.0</Version>
+    <Company>JapanMarketing LLC</Company>
+    <Product>ReplyFive</Product>
+    <Copyright>© JapanMarketing LLC</Copyright>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <SupportedOSPlatformVersion Condition="$(TargetFramework.Contains('-windows'))">10.0.19041.0</SupportedOSPlatformVersion>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <!-- Sentry DSN は配布物へ埋め込んでよい（秘密値ではない）。ビルド時に -p:SentryDsn=… で渡す。 -->
+    <SentryDsn Condition="'$(SentryDsn)' == ''"></SentryDsn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="$(TargetFramework.Contains('-windows'))">
+    <DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>
+    <UseWindowsForms>false</UseWindowsForms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>SentryDsn</_Parameter1>
+      <_Parameter2>$(SentryDsn)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.2" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.2" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.2" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.2" />
+    <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3">
+      <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
+      <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="Sentry" Version="6.11.0" />
+    <PackageReference Include="Tmds.DBus.Protocol" Version="0.95.1" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$(TargetFramework.Contains('-windows'))">
+    <PackageReference Include="FlaUI.UIA3" Version="5.0.0" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.12" />
+    <PackageReference Include="System.Drawing.Common" Version="10.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../ReplyFive.Core/ReplyFive.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 文言は macOS 版の Localizable.strings をそのまま基準にし、OS 固有の言い回しだけ overrides で差し替える -->
+    <EmbeddedResource Include="Resources/*.strings" WithCulture="false" LogicalName="%(Filename)%(Extension)" />
+    <AvaloniaResource Include="Assets/**" />
+  </ItemGroup>
+
+  <ItemGroup Condition="!$(TargetFramework.Contains('-windows'))">
+    <Compile Remove="Platform/Windows/**" />
+  </ItemGroup>
+</Project>

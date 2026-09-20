@@ -1,0 +1,23 @@
+[
+  {"app_name": "Slack", "text": "", "expected": "slack"},
+  {"app_name": "Microsoft Teams", "text": "", "expected": "teams"},
+  {"app_name": "Microsoft Teams (work or school)", "text": "", "expected": "teams"},
+  {"app_name": "Chatwork", "text": "", "expected": "chatwork"},
+  {"app_name": "LINE WORKS", "text": "", "expected": "lineworks"},
+  {"app_name": "LINE", "text": "", "expected": "line"},
+  {"app_name": "Mail", "text": "", "expected": "gmail"},
+  {"app_name": "Microsoft Outlook", "text": "", "expected": "outlook"},
+  {"app_name": "Google Chat", "text": "", "expected": "googlechat"},
+  {"app_name": "Google Chrome", "text": "田中様\nmail.google.com のスレッドです", "expected": "gmail"},
+  {"app_name": "Google Chrome", "text": "https://app.slack.com/client/T0/C0 #general", "expected": "slack"},
+  {"app_name": "Safari", "text": "teams.microsoft.com 会議のリンク", "expected": "teams"},
+  {"app_name": "Microsoft Edge", "text": "outlook.office.com/mail/inbox", "expected": "outlook"},
+  {"app_name": "Arc", "text": "chatwork.com/#!rid123", "expected": "chatwork"},
+  {"app_name": "Firefox", "text": "line.worksmobile.com のトーク", "expected": "lineworks"},
+  {"app_name": "Brave Browser", "text": "chat.google.com/room/AAAA", "expected": "googlechat"},
+  {"app_name": "Google Chrome", "text": "本文にヒントがない場合", "expected": "generic"},
+  {"app_name": "Notes", "text": "", "expected": "generic"},
+  {"app_name": null, "text": "", "expected": "generic"},
+  {"app_name": "Gmail", "text": "", "expected": "gmail"},
+  {"app_name": "Airline Booking", "text": "", "expected": "generic"}
+]

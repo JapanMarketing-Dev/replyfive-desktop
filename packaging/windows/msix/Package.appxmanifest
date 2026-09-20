@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Microsoft Store 用 MSIX マニフェスト（付録CH）。
+  Identity の Name / Publisher と PublisherDisplayName は Partner Center でアプリ名「ReplyFive」を予約したときに
+  発行される値に差し替える（Product management → Product identity）。Version は build-msix.ps1 が -Version で上書きする。
+-->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+  xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5"
+  xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap uap3 uap5 desktop rescap">
+
+  <Identity
+    Name="REPLACE_PACKAGE_IDENTITY_NAME"
+    Publisher="REPLACE_PUBLISHER_CN"
+    Version="0.8.0.0"
+    ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>ReplyFive</DisplayName>
+    <PublisherDisplayName>REPLACE_PUBLISHER_DISPLAY_NAME</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+    <Description>Turn a few words into a ready-to-send reply that fits the conversation you are looking at.</Description>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-US" />
+    <Resource Language="ja-JP" />
+  </Resources>
+
+  <Applications>
+    <Application Id="ReplyFive" Executable="ReplyFive.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+        DisplayName="ReplyFive"
+        Description="Turn a few words into a ready-to-send reply that fits the conversation you are looking at."
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" Square71x71Logo="Assets\SmallTile.png" Square310x310Logo="Assets\LargeTile.png" />
+        <uap:SplashScreen Image="Assets\SplashScreen.png" />
+      </uap:VisualElements>
+
+      <Extensions>
+        <!-- replyfive://connect?server=…&link=… （管理画面の connect フロー、付録BF） -->
+        <uap:Extension Category="windows.protocol">
+          <uap:Protocol Name="replyfive">
+            <uap:DisplayName>ReplyFive</uap:DisplayName>
+          </uap:Protocol>
+        </uap:Extension>
+        <!-- ログイン時に起動（利用者が設定 → スタートアップアプリで切れる）。初回設定の「ログイン時に起動」に合わせる -->
+        <desktop:Extension Category="windows.startupTask" Executable="ReplyFive.exe" EntryPoint="Windows.FullTrustApplication">
+          <desktop:StartupTask TaskId="ReplyFiveStartup" Enabled="true" DisplayName="ReplyFive" />
+        </desktop:Extension>
+        <!-- 単一インスタンス（Program.cs の SingleInstance と二重にはしない。URL 起動時のプロセス転送用） -->
+        <uap5:Extension Category="windows.appExecutionAlias" Executable="ReplyFive.exe" EntryPoint="Windows.FullTrustApplication">
+          <uap5:AppExecutionAlias>
+            <uap5:ExecutionAlias Alias="replyfive.exe" />
+          </uap5:AppExecutionAlias>
+        </uap5:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <Capability Name="internetClient" />
+    <!-- UI Automation で前面アプリの会話ペインを読み、入力欄へ差し込む（Desktop Bridge）。審査ノートに用途を書く -->
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>

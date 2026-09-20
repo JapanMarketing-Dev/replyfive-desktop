@@ -1,0 +1,195 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ReplyFive.Desktop.Views.PanelWindow"
+        Title="ReplyFive"
+        Width="568" SizeToContent="Height"
+        WindowDecorations="None" Background="Transparent" TransparencyLevelHint="Transparent"
+        CanResize="False" ShowInTaskbar="False" Topmost="True" ShowActivated="True"
+        RequestedThemeVariant="Dark" FontSize="13">
+    <Window.Styles>
+        <Style Selector="TextBlock">
+            <Setter Property="Foreground" Value="#F2F2F5" />
+        </Style>
+        <Style Selector="TextBlock.secondary">
+            <Setter Property="Foreground" Value="#A9ABB5" />
+        </Style>
+        <Style Selector="TextBlock.tiny">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="#A9ABB5" />
+        </Style>
+        <Style Selector="Button.small">
+            <Setter Property="Padding" Value="10,4" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="CornerRadius" Value="7" />
+            <Setter Property="Background" Value="#26FFFFFF" />
+            <Setter Property="Foreground" Value="#F2F2F5" />
+        </Style>
+        <Style Selector="Button.small:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#3AFFFFFF" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+        </Style>
+        <Style Selector="Button.prominent">
+            <Setter Property="Background" Value="#3B6CFF" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.prominent:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#5C8CFF" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.plain">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="4" />
+        </Style>
+        <Style Selector="Button.plain:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#1AFFFFFF" />
+        </Style>
+        <Style Selector="TextBox.glass">
+            <Setter Property="Background" Value="#12FFFFFF" />
+            <Setter Property="BorderBrush" Value="#1FFFFFFF" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Foreground" Value="#F2F2F5" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="AcceptsReturn" Value="True" />
+        </Style>
+        <Style Selector="TextBox.glass:focus /template/ Border#PART_BorderElement">
+            <Setter Property="BorderBrush" Value="#665C8CFF" />
+            <Setter Property="Background" Value="#16FFFFFF" />
+        </Style>
+        <Style Selector="TextBox.glass:pointerover /template/ Border#PART_BorderElement">
+            <Setter Property="BorderBrush" Value="#33FFFFFF" />
+            <Setter Property="Background" Value="#14FFFFFF" />
+        </Style>
+        <Style Selector="RadioButton.segment">
+            <Setter Property="Padding" Value="10,3" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+    </Window.Styles>
+
+    <!-- グロー（影）が切れない余白を持つ外枠 -->
+    <Grid Margin="24,24,24,18" RowDefinitions="Auto,Auto">
+        <Border Name="Card" Grid.Row="0" Width="520" CornerRadius="18" Padding="14"
+                BorderThickness="1" ClipToBounds="False"
+                BoxShadow="0 0 14 0 #E65C8CFF, 0 0 28 0 #995C8CFF, 0 8 16 0 #4D000000">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                    <GradientStop Offset="0" Color="#F02A2B33" />
+                    <GradientStop Offset="1" Color="#F21E1F26" />
+                </LinearGradientBrush>
+            </Border.Background>
+            <Border.BorderBrush>
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                    <GradientStop Offset="0" Color="#8CFFFFFF" />
+                    <GradientStop Offset="1" Color="#735C8CFF" />
+                </LinearGradientBrush>
+            </Border.BorderBrush>
+            <StackPanel Spacing="10">
+                <!-- 上段：アプリ ／ 相手 ／ 記録 ／ キー操作 ／ 設定 -->
+                <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto" Height="26">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <PathIcon Name="AppIcon" Width="16" Height="16" Foreground="#A9ABB5" />
+                        <TextBlock Name="AppNameText" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="160" />
+                    </StackPanel>
+                    <Rectangle Grid.Column="1" Width="1" Height="18" Fill="#2EFFFFFF" Margin="12,0" VerticalAlignment="Center" />
+                    <Button Grid.Column="2" Name="ContactButton" Classes="plain" CornerRadius="12" Padding="10,3" Background="#1AFFFFFF" MaxWidth="220" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="7">
+                            <PathIcon Name="ContactIcon" Width="14" Height="14" Foreground="#F2F2F5" />
+                            <TextBlock Name="ContactText" FontSize="13" FontWeight="Medium" TextTrimming="CharacterEllipsis" MaxWidth="170" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <PathIcon Grid.Column="3" Name="RecordsIcon" Width="13" Height="13" Margin="8,0,0,0" Foreground="#A9ABB5" VerticalAlignment="Center" IsVisible="False" />
+                    <TextBlock Grid.Column="5" Name="KeysHint" Classes="tiny" FontSize="10.5" VerticalAlignment="Center" Margin="8,0" />
+                    <Button Grid.Column="6" Name="SettingsButton" Classes="plain" VerticalAlignment="Center">
+                        <PathIcon Name="GearIcon" Width="16" Height="16" Foreground="#E0E0E6" />
+                    </Button>
+                </Grid>
+
+                <!-- 未接続・未契約の帯 -->
+                <Border Name="RegistrationBanner" Background="#1FFF9F1C" CornerRadius="10" Padding="12,8" IsVisible="False">
+                    <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                        <PathIcon Grid.Column="0" Name="RegIcon" Width="14" Height="14" Foreground="#FF9F1C" Margin="0,0,8,0" />
+                        <TextBlock Grid.Column="1" Name="RegText" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" />
+                        <Button Grid.Column="2" Name="SignInButton" Classes="small prominent" Margin="8,0,0,0" />
+                        <Button Grid.Column="3" Name="OpenSettingsButton" Classes="small" Margin="6,0,0,0" />
+                    </Grid>
+                </Border>
+                <Border Name="InactiveBanner" Background="#1FFF9F1C" CornerRadius="10" Padding="12,8" IsVisible="False">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                        <PathIcon Grid.Column="0" Name="InactiveIcon" Width="14" Height="14" Foreground="#FF9F1C" Margin="0,0,8,0" />
+                        <TextBlock Grid.Column="1" Name="InactiveText" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" />
+                        <Button Grid.Column="2" Name="InactiveBillingButton" Classes="small" Margin="8,0,0,0" />
+                    </Grid>
+                </Border>
+
+                <!-- 読み取った会話（相手名をクリックしたときだけ） -->
+                <Border Name="ContextPreview" Background="#0AFFFFFF" CornerRadius="10" Padding="10" IsVisible="False">
+                    <StackPanel Spacing="4">
+                        <TextBlock Name="ContextLabel" Classes="tiny" />
+                        <ScrollViewer MaxHeight="120" VerticalScrollBarVisibility="Auto">
+                            <SelectableTextBlock Name="ContextText" FontSize="12" Foreground="#A9ABB5" TextWrapping="Wrap" />
+                        </ScrollViewer>
+                        <TextBlock Name="ContextNote" Classes="tiny" IsVisible="False" />
+                    </StackPanel>
+                </Border>
+
+                <!-- 会話を読み取れなかったときの案内（付録BO） -->
+                <Border Name="CaptureStatus" Background="#1FFF9F1C" CornerRadius="10" Padding="10" IsVisible="False">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                        <PathIcon Grid.Column="0" Name="CaptureIcon" Width="14" Height="14" Foreground="#FF9F1C" Margin="0,2,8,0" VerticalAlignment="Top" />
+                        <StackPanel Grid.Column="1" Spacing="4">
+                            <TextBlock Name="CaptureTitle" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <TextBlock Name="CaptureBody" FontSize="11" Classes="secondary" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <Button Grid.Column="2" Name="CaptureAllowButton" Classes="small prominent" Margin="8,0,0,0" VerticalAlignment="Center" IsVisible="False" />
+                    </Grid>
+                </Border>
+
+                <!-- 中段：入力欄 -->
+                <TextBox Name="IntentBox" Classes="glass" MinHeight="64" MaxHeight="160" />
+
+                <!-- 結果欄（Alt+Return や失敗時） -->
+                <StackPanel Name="ResultArea" Spacing="6" IsVisible="False">
+                    <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto">
+                        <TextBlock Grid.Column="0" Name="ResultLabel" Classes="tiny" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <ProgressBar Grid.Column="1" Name="ResultSpinner" IsIndeterminate="True" Width="40" Height="4" Margin="8,0,0,0" IsVisible="False" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="2" Name="VerifiedBadge" Orientation="Horizontal" Spacing="4" Margin="8,0,0,0" IsVisible="False" VerticalAlignment="Center">
+                            <PathIcon Name="VerifiedIcon" Width="12" Height="12" Foreground="#4ADE80" />
+                            <TextBlock Name="VerifiedText" Classes="tiny" Foreground="#4ADE80" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="4" Name="MetaText" Classes="tiny" VerticalAlignment="Center" />
+                    </Grid>
+                    <StackPanel Name="Candidates" Orientation="Horizontal" Spacing="4" IsVisible="False">
+                        <RadioButton Name="Candidate0" Classes="segment" GroupName="cand" IsChecked="True" />
+                        <RadioButton Name="Candidate1" Classes="segment" GroupName="cand" />
+                    </StackPanel>
+                    <TextBox Name="ResultBox" Classes="glass" MinHeight="60" MaxHeight="220" />
+                    <Border Name="HintChip" Background="#1FFF9F1C" CornerRadius="12" Padding="10,5" HorizontalAlignment="Left" IsVisible="False">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Name="HintIcon" Width="12" Height="12" Foreground="#FF9F1C" />
+                            <TextBlock Name="HintText" FontSize="11" FontWeight="Medium" Foreground="#FFB454" TextWrapping="Wrap" MaxWidth="440" />
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Name="WarningText" Classes="tiny" TextWrapping="Wrap" IsVisible="False" />
+                </StackPanel>
+
+                <!-- 下段 -->
+                <Grid Name="Footer" ColumnDefinitions="*,Auto" IsVisible="False">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <ProgressBar Name="FooterSpinner" IsIndeterminate="True" Width="40" Height="4" IsVisible="False" VerticalAlignment="Center" />
+                        <PathIcon Name="FooterIcon" Width="13" Height="13" Foreground="#FF9F1C" IsVisible="False" VerticalAlignment="Center" />
+                        <TextBlock Name="FooterText" FontSize="12" TextWrapping="Wrap" MaxWidth="330" VerticalAlignment="Center" />
+                        <Button Name="FooterActionButton" Classes="small" IsVisible="False" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Name="FooterButtons" Orientation="Horizontal" Spacing="6" IsVisible="False">
+                        <Button Name="CopyButton" Classes="small" />
+                        <Button Name="RegenerateButton" Classes="small" />
+                        <Button Name="InsertButton" Classes="small prominent" />
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+        <!-- 下辺中央の小さな突起（タスクバーを指す） -->
+        <Path Grid.Row="1" Data="M0,0 L16,0 L8,8 Z" Fill="#D9FFFFFF" Width="16" Height="8" HorizontalAlignment="Center" Margin="0,-1,0,0" />
+    </Grid>
+</Window>

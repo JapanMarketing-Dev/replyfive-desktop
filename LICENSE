@@ -1,0 +1,40 @@
+ReplyFive Desktop Source-Available License
+Copyright (c) 2026 JapanMarketing LLC (JapanMarketing合同会社). All rights reserved.
+
+This repository contains the source code of the ReplyFive desktop client for
+Windows and Linux ("the Software"). It is published so that package
+repositories such as Flathub can build it from source and so that users can
+inspect what the Software does on their computer.
+
+Permission is granted, free of charge, to any person or organization:
+
+1. To view, download, and study the source code.
+2. To build the Software from unmodified source (or with modifications strictly
+   required by the build environment, such as packaging manifests, launcher
+   scripts, and dependency pinning) and to run the resulting binaries.
+3. To redistribute binaries built under clause 2 through software distribution
+   services such as Flathub, the Snap Store, the Microsoft Store, and Linux
+   distribution repositories, provided that the Software is distributed
+   unmodified in its behaviour, under the name "ReplyFive", and that this
+   license text is included.
+
+The following are not permitted without prior written permission from
+JapanMarketing LLC:
+
+- Distributing modified versions of the Software, or works derived from it.
+- Using the source code, in whole or in part, in another product or service.
+- Removing or altering trademarks, notices, or the connection to the ReplyFive
+  service.
+
+Use of the ReplyFive service (accounts, reply generation, billing) is governed
+separately by the ReplyFive Terms of Service at https://replyfive.app/legal/terms
+and the Privacy Policy at https://replyfive.app/legal/privacy.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY ARISING FROM THE USE OF THE SOFTWARE.
+
+Third-party components (Avalonia, .NET, and NuGet packages listed in the
+project files) remain under their own licenses.

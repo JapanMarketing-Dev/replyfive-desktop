@@ -1,0 +1,13 @@
+/* Linux の日本語。 */
+"settings.ui_language.system" = "デスクトップ環境の設定に合わせる";
+"menu.allow_accessibility" = "アクセシビリティ（AT-SPI）を有効にする…";
+"settings.accessibility.title" = "アクセシビリティ（AT-SPI）";
+"settings.accessibility.body" = "画面上の会話の読み取りと、利用中のアプリへの返信入力に必要です。ReplyFive がデスクトップのアクセシビリティ機能を有効にします。アプリによっては一度再起動が必要です。";
+"settings.accessibility.open" = "有効にする…";
+"onboarding.step1.title" = "アクセシビリティ（AT-SPI）を有効にする";
+"onboarding.step1.body" = "画面のメッセージを読み取り、元の入力欄に返信を入力するために必要です。ReplyFive がデスクトップのアクセシビリティ機能を有効にします。アプリによっては一度再起動が必要です。";
+"panel.context.no_permission_title" = "デスクトップのアクセシビリティが無効です";
+"panel.context.no_permission" = "アクセシビリティ機能（AT-SPI）が無効なため、会話を読み取れません。「有効にする」を押し、必要に応じてチャットアプリを再起動してから、もう一度ショートカットを押してください。";
+"panel.context.allow" = "有効にする…";
+"panel.context.screen_title" = "%@ は会話を ReplyFive に渡していません";
+"panel.context.screen_body" = "このアプリはアクセシビリティ経由でのテキスト取得に対応していません。返信したいメッセージを選択してからもう一度ショートカットを押すと、選択したテキストを使用します。";

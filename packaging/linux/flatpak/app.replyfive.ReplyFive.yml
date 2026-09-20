@@ -1,0 +1,57 @@
+# Flathub 用マニフェスト（付録CH）。Flathub はビルド中にネットワークを使えないので、
+# NuGet の依存は nuget-sources.json（flatpak-dotnet-generator.py で生成）から取る。共通コアは C#（付録CG）なので Go は要らない。
+# 手順は同じディレクトリの README.md。
+app-id: app.replyfive.ReplyFive
+runtime: org.freedesktop.Platform
+runtime-version: "24.08"
+sdk: org.freedesktop.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.dotnet10
+command: ReplyFive
+separate-locales: false
+
+finish-args:
+  - --share=ipc
+  - --share=network
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  - --env=REPLYFIVE_DISTRIBUTION=store          # ストア版：アプリ内アップデートを切る
+  - --env=DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=0
+  - --talk-name=org.a11y.Bus                      # AT-SPI：返信欄の祖先＝会話ペインを読み、入力欄へ差し込む
+  - --talk-name=org.freedesktop.secrets           # Secret Service：端末トークンと暗号鍵
+  - --talk-name=org.kde.StatusNotifierWatcher     # トレイ
+  - --talk-name=org.freedesktop.portal.GlobalShortcuts  # 既定で許可されるが明示
+  - --talk-name=org.freedesktop.portal.Background        # ログイン時起動（Background ポータル）
+  - --filesystem=xdg-run/at-spi:ro
+
+build-options:
+  append-path: /usr/lib/sdk/dotnet10/bin
+  append-ld-library-path: /usr/lib/sdk/dotnet10/lib
+  env:
+    PKG_CONFIG_PATH: /app/lib/pkgconfig:/usr/lib/sdk/dotnet10/lib/pkgconfig
+    DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+    DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
+
+modules:
+  - name: replyfive
+    buildsystem: simple
+    build-commands:
+      # Flathub のビルドは秘密値も環境変数も無いので Sentry DSN は渡さない（DSN は秘密ではないが、渡すならこのマニフェストに直書き）
+      - |
+        case "$FLATPAK_ARCH" in x86_64) RID=linux-x64;; aarch64) RID=linux-arm64;; *) echo "unsupported $FLATPAK_ARCH"; exit 1;; esac
+        dotnet publish clients/desktop/src/ReplyFive.Desktop -c Release -f net10.0 -r "$RID" --self-contained --source ./nuget-sources -o /app/lib/replyfive
+      - |
+        mkdir -p /app/bin
+        printf '#!/bin/sh\nexec /app/lib/replyfive/ReplyFive "$@"\n' > /app/bin/ReplyFive
+        chmod 755 /app/bin/ReplyFive
+      - install -Dm644 clients/desktop/packaging/linux/app.replyfive.ReplyFive.desktop /app/share/applications/app.replyfive.ReplyFive.desktop
+      - install -Dm644 clients/desktop/packaging/linux/app.replyfive.ReplyFive.metainfo.xml /app/share/metainfo/app.replyfive.ReplyFive.metainfo.xml
+      - install -Dm644 clients/desktop/packaging/linux/icons/replyfive-256.png /app/share/icons/hicolor/256x256/apps/app.replyfive.ReplyFive.png
+      - install -Dm644 clients/desktop/packaging/linux/icons/replyfive-512.png /app/share/icons/hicolor/512x512/apps/app.replyfive.ReplyFive.png
+    sources:
+      - type: git
+        url: https://github.com/JapanMarketing-Dev/ReplyFive.git
+        tag: desktop-v0.8.0
+        commit: REPLACE_COMMIT
+      - nuget-sources.json

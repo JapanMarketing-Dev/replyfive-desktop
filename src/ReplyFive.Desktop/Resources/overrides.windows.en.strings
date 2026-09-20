@@ -1,0 +1,7 @@
+/* Windows。UI Automation は許可が要らないので「アクセシビリティの許可」の文言は出ない。 */
+"settings.ui_language.system" = "Same as Windows";
+"panel.context.no_selection" = "This app did not give ReplyFive the conversation, so the reply will be written from your words only. Select the message you are replying to and press %@ to include it.";
+"panel.context.screen_title" = "%@ does not share its conversation with ReplyFive";
+"panel.context.screen_body" = "ReplyFive reads the conversation shown on screen when you press the shortcut (one capture, nothing is stored). Press the shortcut again.";
+"menu.status.not_connected" = "Not connected — set up…";
+"update.error.signature" = "The downloaded installer is not signed by JapanMarketing.";

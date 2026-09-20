@@ -1,0 +1,10 @@
+bin/
+obj/
+dist/
+out/
+.env*
+*.user
+.vs/
+.idea/
+packaging/out/
+packaging/linux/snap/snap/

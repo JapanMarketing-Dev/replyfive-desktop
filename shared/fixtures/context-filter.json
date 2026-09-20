@@ -1,0 +1,14 @@
+{
+  "_note": "付録BV：POST /v1/context/filter の例。keep は messages と同じ順。source=none のときは全部 true（端末は規則だけで保存する）",
+  "request": {
+    "platform": "slack",
+    "contact_name": "山田",
+    "messages": [
+      {"role": "other", "sender": "山田", "text": "スレッドを表示する"},
+      {"role": "other", "sender": "山田", "text": "明日までにお願いします"},
+      {"role": "me", "text": "確認します"}
+    ]
+  },
+  "response": {"keep": [false, true, true], "probabilities": [0.05, 0.9, 0.6], "source": "jev", "elapsed_ms": 534},
+  "response_unavailable": {"keep": [true, true, true], "probabilities": [1, 1, 1], "source": "none", "elapsed_ms": 0}
+}

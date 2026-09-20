@@ -1,0 +1,13 @@
+# Wayland 経路の結合テスト（ヘッドレス）。sway（wlroots の headless バックエンド）の上で GTK3 の会話アプリと ReplyFive を Wayland ネイティブで動かし、
+# AT-SPI の読み取り→サーバ生成→EditableText 差し込みが X11 無しで通ることを確かめる。ショートカットは Portal 無し（X11 も無し）なので --send で開く。
+FROM ubuntu:24.04
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    sway grim wl-clipboard wtype dbus at-spi2-core python3-gi gir1.2-gtk-3.0 \
+    libwayland-client0 libwayland-egl1 libxkbcommon0 libegl1 libgl1 libgles2 mesa-utils libgbm1 \
+    libicu74 libfontconfig1 libglib2.0-0 libsecret-1-0 fonts-noto-cjk ca-certificates curl python3 \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /work
+COPY chat_app.py inside.sh ./
+RUN chmod +x inside.sh
+ENTRYPOINT ["./inside.sh"]

@@ -1,0 +1,254 @@
+{
+  "valid": [
+    {
+      "name": "minimal",
+      "request": {
+        "user_intent": "了解、明日送る"
+      }
+    },
+    {
+      "name": "full",
+      "request": {
+        "platform": "gmail",
+        "recipient_type": "customer",
+        "tone": "polite",
+        "user_intent": "承諾。金曜まで待ってほしい",
+        "conversation_context": {
+          "source": "selected_text",
+          "app_name": "Google Chrome",
+          "text": "田中です。見積の件、今週中にいただけますか。"
+        },
+        "learned_examples": [
+          {
+            "intent": "断る",
+            "corrected": "申し訳ありませんが今回は見送らせてください。"
+          }
+        ],
+        "client": {
+          "os": "macos",
+          "version": "0.2.0"
+        }
+      }
+    },
+    {
+      "name": "with sender style (付録CD)",
+      "request": {
+        "platform": "slack",
+        "user_intent": "16時になりそう。先に概要だけ送る",
+        "sender": {
+          "name": "遠藤",
+          "style": {
+            "formality": "casual",
+            "length": "short",
+            "greeting": "none",
+            "closing": "light",
+            "emoji": "none"
+          }
+        }
+      }
+    },
+    {
+      "name": "sender style with unknown value is ignored",
+      "request": {
+        "platform": "slack",
+        "user_intent": "ok",
+        "sender": {
+          "style": {
+            "formality": "extremely",
+            "length": "short"
+          }
+        }
+      }
+    },
+    {
+      "name": "unknown platform falls back to generic",
+      "request": {
+        "platform": "mixi",
+        "user_intent": "ok"
+      },
+      "expect_platform": "generic"
+    },
+    {
+      "name": "with sender name",
+      "request": {
+        "platform": "gmail",
+        "recipient_type": "customer",
+        "tone": "polite",
+        "user_intent": "値引きは無理。代わりに納期を1週間早められる",
+        "sender": {
+          "name": "佐藤"
+        },
+        "conversation_context": {
+          "source": "selected_text",
+          "app_name": "Google Chrome",
+          "text": "株式会社ABC 佐藤様\n\nいつもお世話になっております。XYZ商事の山本です。\n先日の御見積について、10%ほどのお値引きをご検討いただくことは可能でしょうか。"
+        },
+        "client": {
+          "os": "macos",
+          "version": "0.3.0"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "note": "返信は山本様宛。佐藤様と呼びかけない。sender.name が無い場合も 200"
+      }
+    },
+    {
+      "name": "with contact name from window (付録BE)",
+      "request": {
+        "platform": "slack",
+        "recipient_type": "internal",
+        "tone": "natural",
+        "user_intent": "順調。金曜に共有できる",
+        "sender": {
+          "name": "遠藤"
+        },
+        "conversation_context": {
+          "source": "window",
+          "app_name": "Slack",
+          "contact_name": "佐藤",
+          "text": "遠藤\n先週の進捗ありがとうございます。\n佐藤\n来週の件、どうなりそうですか？"
+        },
+        "client": {
+          "os": "macos",
+          "version": "0.6.0"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "note": "返信は佐藤宛（社内チャットなので呼びかけは任意）。contact_name が無い場合も 200"
+      }
+    },
+    {
+      "name": "with conversation messages, last turn is the user's own (付録BS)",
+      "request": {
+        "platform": "slack",
+        "recipient_type": "internal",
+        "tone": "natural",
+        "user_intent": "あと、テスト環境は金曜まで止めます",
+        "sender": {
+          "name": "遠藤"
+        },
+        "conversation_context": {
+          "source": "window",
+          "app_name": "Slack",
+          "contact_name": "山田",
+          "text": "山田: リリース日、10/22でよいですか？\n自分: 10/22で確定します。",
+          "messages": [
+            {
+              "role": "other",
+              "sender": "山田",
+              "text": "リリース日、10/22でよいですか？"
+            },
+            {
+              "role": "me",
+              "sender": null,
+              "text": "10/22で確定します。"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "auto intent with conversation (付録CF)",
+      "request": {
+        "platform": "slack",
+        "auto_intent": true,
+        "user_intent": "",
+        "conversation_context": {
+          "source": "window",
+          "app_name": "Slack",
+          "contact_name": "佐藤",
+          "messages": [
+            {
+              "role": "other",
+              "sender": "佐藤",
+              "text": "来週の定例、水曜に動かせますか？"
+            }
+          ],
+          "text": "佐藤: 来週の定例、水曜に動かせますか？"
+        }
+      },
+      "expect_platform": "slack"
+    }
+  ],
+  "invalid": [
+    {
+      "name": "missing intent",
+      "request": {
+        "platform": "slack"
+      },
+      "expected_error": "user_intent_required"
+    },
+    {
+      "name": "blank intent",
+      "request": {
+        "user_intent": "   "
+      },
+      "expected_error": "user_intent_required"
+    },
+    {
+      "name": "intent too long",
+      "request": {
+        "user_intent": ""
+      },
+      "expected_error": "user_intent_too_long",
+      "generate": {
+        "field": "user_intent",
+        "char": "あ",
+        "length": 2001
+      }
+    },
+    {
+      "name": "context too long",
+      "request": {
+        "user_intent": "ok",
+        "conversation_context": {
+          "source": "clipboard",
+          "text": ""
+        }
+      },
+      "expected_error": "context_too_long",
+      "generate": {
+        "field": "conversation_context.text",
+        "char": "い",
+        "length": 5001
+      }
+    },
+    {
+      "name": "auto intent without conversation",
+      "request": {
+        "platform": "slack",
+        "auto_intent": true,
+        "user_intent": ""
+      },
+      "expected_error": "user_intent_required"
+    }
+  ],
+  "policy": [
+    {
+      "name": "prohibited phrase in intent",
+      "policy": {
+        "prohibited_phrases": [
+          "絶対に"
+        ]
+      },
+      "request": {
+        "user_intent": "絶対に大丈夫です"
+      },
+      "expected_error": "prohibited_phrase"
+    },
+    {
+      "name": "prefix and signature appended",
+      "policy": {
+        "required_prefix": "【JM】",
+        "signature": "JapanMarketing合同会社"
+      },
+      "request": {
+        "user_intent": "確認しました"
+      },
+      "expect_text_starts_with": "【JM】",
+      "expect_text_ends_with": "JapanMarketing合同会社"
+    }
+  ]
+}
