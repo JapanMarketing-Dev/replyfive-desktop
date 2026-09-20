@@ -31,6 +31,8 @@ dotnet publish src/ReplyFive.Desktop -c Release -f net10.0 -r linux-arm64 --self
 
 ## Windows（Microsoft Store）
 
+Windows 機が無いときは `clients/desktop/tests/msix-pack/pack.sh`（Microsoft の msix-packaging を macOS / Linux でビルドした makemsix）で x64 / arm64 の .msix を作れる。bundle は未署名では作れないので、Partner Center へは 2 つの .msix を別々に上げる。
+
 1. Partner Center → Apps and games → 新しい製品 → 名前 **ReplyFive** を予約。発行された `Package/Identity/Name`・`Publisher`・`PublisherDisplayName` を `windows/msix/Package.appxmanifest` に写す（`REPLACE_*`）。
 2. Windows 実機（Windows SDK 入り）で `windows/msix/build-msix.ps1 -Version 0.8.0.0` → `out/ReplyFive_0.8.0.0.msixupload`（x64 + arm64 の bundle）。ストアが署名するので配布用の証明書は不要。手元で動かすときだけ `-SelfSign` で自己署名する。
 3. Partner Center の提出：パッケージに `.msixupload`、ストア掲載は `docs/store-listing/microsoft-store.md`、プライバシー URL `https://replyfive.app/legal/privacy`、年齢区分は IARC の質問票（暴力・課金なし。通信あり）。

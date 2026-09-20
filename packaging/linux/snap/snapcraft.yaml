@@ -34,7 +34,7 @@ apps:
   replyfive:
     command: bin/ReplyFive
     desktop: usr/share/applications/app.replyfive.ReplyFive.desktop
-    extensions: [gnome]          # GTK / フォント / ポータル / 環境変数（Wayland・X11）を揃える
+    # gnome 拡張は使わない（Avalonia は GTK 不要。snapcraft コンテナ像に拡張が無く arm64 を手元で作れないため。付録CI-4）
     autostart: app.replyfive.ReplyFive.desktop
     environment:
       REPLYFIVE_DISTRIBUTION: store     # ストア版：アプリ内アップデートを切る
@@ -58,6 +58,8 @@ parts:
     source-type: local
     organize:
       "*": bin/
+  runtime-libs:                 # 別パートにして usr/lib/<triplet> に置く（bin/ に混ぜると LD_LIBRARY_PATH に載らない）
+    plugin: nil
     stage-packages:
       - libicu74
       - libfontconfig1
@@ -67,9 +69,14 @@ parts:
       - libxcursor1
       - libxext6
       - xdotool                   # AT-SPI EditableText 非対応の入力欄だけ Ctrl+V（X11）
-    override-prime: |
-      craftctl default
-      chmod +x $CRAFT_PRIME/bin/ReplyFive
+      - fontconfig-config
+      - fonts-dejavu-core
+      - fonts-noto-cjk           # 日本語表示
+      - libgl1
+      - libegl1
+      - libsecret-1-0
+      - libglib2.0-0t64
+    # 実行ビットは publish 済みディレクトリのまま dump される（override-prime は snapcraft コンテナ像に craftctl が無いので使わない）
   desktop-files:
     plugin: dump
     source: ../

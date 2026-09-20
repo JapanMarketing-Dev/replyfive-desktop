@@ -172,22 +172,16 @@
     },
     "POST /v1/style/profile": {
       "auth": true,
-      "_note": "付録CD：初回設定で利用者が自分の言葉で書いた返信（最大 5 件、各 1,000 文字）から文体のラベルを Jev で判定する。本文は判定にだけ使い、保存・ログ・分析に出さない。判定器が無い・失敗したときも 200（source=none、profile は空）",
+      "_note": "付録CD：初回設定で利用者が自分の言葉で書いた返信（最大 5 件、各 1,000 文字）から文体のラベルを規則（敬語表現・文の数・開き／結びの句）で決める。本文は判定にだけ使い、保存・ログ・分析に出さない",
       "request": {
         "samples": "array of {received: string(max 2000, 見せた相手のメッセージ), reply: string(max 1000, 利用者が書いた返信)}"
       },
       "response": {
         "profile": "sender.style と同じ形（固定語彙のラベルだけ）",
         "confidence": "object: 項目名 → 0..1",
-        "source": "jev|static|none",
+        "source": "rules",
         "elapsed_ms": "integer"
       }
-    },
-    "POST /v1/context/filter": {
-      "auth": true,
-      "_note": "付録BV：端末が画面から読んだ発言のうち「人が書いた発言」だけを端末内の会話 index に保存するための判定。サーバは本文を判定にだけ使い、保存・ログ・分析に出さない。判定できないときも 200（source=none、keep は全部 true）。端末は失敗時に規則だけで保存する",
-      "request": "context_filter_request",
-      "response": "context_filter_response"
     },
     "GET /v1/admin/quality": {
       "auth": "admin session",
@@ -199,15 +193,11 @@
         "total": "integer",
         "rows": [
           {
-            "reply_kind": "string",
+            "day": "YYYY-MM-DD（UTC）",
             "count": "integer",
             "edited": "integer",
             "edit_ratio_avg": "0..1",
-            "edit_chars_avg": "number（付録BG：1 件あたりの平均修正文字数。レーベンシュタイン距離の平均）",
-            "verified": "integer",
-            "regenerated": "integer",
-            "candidate_offered": "integer",
-            "candidate_chosen": "integer"
+            "edit_chars_avg": "number（付録BG：1 件あたりの平均修正文字数。レーベンシュタイン距離の平均）"
           }
         ]
       }
@@ -226,14 +216,6 @@
   },
   "feedback_request": {
     "request_id": "uuid（format_response.request_id）",
-    "reply_kind": "format_response.classification.reply_kind（無ければ \"unknown\"）",
-    "reply_kind_confidence": "0..1",
-    "asks": "format_response.classification.asks（任意）",
-    "intent_form": "format_response.classification.intent_form（任意）",
-    "meaning_verified": "boolean",
-    "regenerated": "boolean（format_response.verification.regenerated）",
-    "candidate_offered": "boolean（candidates が 1 件以上あったか）",
-    "candidate_chosen": "boolean（利用者が候補側を選んだか）",
     "action": "insert|copy|dismiss",
     "edited": "boolean（挿入・コピー時点で生成文と最終文が異なるか）",
     "edit_ratio": "0..1（正規化レーベンシュタイン距離。dismiss では 0）",
@@ -242,17 +224,6 @@
       "os": "macos|windows|linux",
       "version": "string"
     }
-  },
-  "context_filter_request": {
-    "platform": "format_request.platform と同じ語彙",
-    "contact_name": "string（任意）",
-    "messages": "conversation_context.messages と同じ形（role|sender|text）。最大 60 件、合計 20,000 文字。新しく読んだ発言だけを送る"
-  },
-  "context_filter_response": {
-    "keep": "boolean[]（messages と同じ順。true＝人が書いた発言として保存する）",
-    "probabilities": "number[]（0..1。「発言である」確率。閾値 0.5）",
-    "source": "jev|none",
-    "elapsed_ms": "integer"
   },
   "format_request": {
     "platform": {
@@ -322,7 +293,7 @@
       }
     },
     "learned_examples": {
-      "_note": "付録BD・BG：端末が収集した「この相手・媒体への過去の返信」（意図と実際に送った文）。修正の有無を問わず記録し、関連しそうな順（同じ相手→同じ媒体→その他）に最大 10 件送る。サーバは Jev の関連度判定で 3 件に絞ってモデルへ渡す（判定が無ければ先頭 3 件）。フィールド名は互換のため learned_examples のまま",
+      "_note": "付録BD・BG：端末が収集した「この相手・媒体への過去の返信」（意図と実際に送った文）。修正の有無を問わず記録し、付録BN：同じ相手の例だけを新しい順に最大 10 件送る（相手が分からなければ送らない）。サーバは先頭 3 件をモデルへ渡す。フィールド名は互換のため learned_examples のまま",
       "max_items": 10,
       "max_items_sent_to_model": 3,
       "item": {
@@ -363,7 +334,6 @@
     "text": "string",
     "provider": "groq|bedrock|mock",
     "model": "string",
-    "meaning_verified": "boolean（付録BC：verification.passed が true のとき true。検証なし・失敗・タイムアウトは false）",
     "context_supplied": "boolean",
     "policy_applied": "boolean",
     "request_id": "uuid",
@@ -373,62 +343,7 @@
       "context_ignored_by_policy",
       "learning_ignored_by_policy"
     ],
-    "language": "auto|BCP-47（リクエストで解決した値）",
-    "classification": {
-      "_note": "任意（付録BB・BC）。サーバの Jev 事前判定が有効で成功したときだけ付く。本文は含まない。クライアントは無視してよい",
-      "reply_kind": "accept|decline|conditional|inform|request|acknowledge|apologize|remind|other",
-      "reply_kind_confidence": "0..1",
-      "asks": "decision|information|schedule|deliverable|confirmation|none（文脈が無いときは省略）",
-      "asks_confidence": "0..1",
-      "formality": "0 casual | 1 standard business | 2 formal | -1 判定なし",
-      "formality_confidence": "0..1",
-      "context_related": "0..1（文脈が無いときは -1）",
-      "intent_form": "note|complete|noise（意図が短いメモか、すでに完成した文か、意味のない入力か）",
-      "intent_form_confidence": "0..1",
-      "covers_ask": "0..1（意図が相手の要求に答えているか。文脈が無いときは -1）",
-      "source": "jev",
-      "elapsed_ms": "integer"
-    },
-    "hints": {
-      "_note": "任意（付録BC）。パネルに出す注意。本文は含まない",
-      "enum": [
-        "ask_unanswered",
-        "policy_rule_flagged"
-      ],
-      "ask_unanswered": "classification.asks（decision|information|schedule|deliverable）を意図が満たしていない可能性が高い。文言は asks に応じてクライアントが選ぶ",
-      "policy_rule_flagged": "付録BD：作り直しても組織ルール（policy.rules）に反する疑いが残る。挿入前に確認を促す"
-    },
-    "verification": {
-      "_note": "任意（付録BC）。生成後に Jev で意味を検証した結果。passed のとき meaning_verified も true",
-      "passed": "boolean",
-      "issues": [
-        "fact_changed",
-        "commitment_added",
-        "detail_invented",
-        "name_invented",
-        "addressed_to_user",
-        "language_mismatch",
-        "policy_rule"
-      ],
-      "regenerated": "boolean（不合格で 1 回だけ作り直したか）",
-      "source": "jev",
-      "elapsed_ms": "integer"
-    },
-    "candidates": {
-      "_note": "任意（付録BC）。reply_kind の確信度が低いとき、2 番目に確からしい種別で並列生成した別案。text が主案。組織ポリシー（接頭辞・署名・禁止語）は適用済み",
-      "items": [
-        {
-          "reply_kind": "accept|decline|conditional|inform|request|acknowledge|apologize|remind",
-          "text": "string"
-        }
-      ]
-    },
-    "context_filter": {
-      "_note": "任意（付録BV）。会話形式の文脈を Jev で「発言か」「今回の返信に要るか」で絞ってから LLM へ渡した結果。本文は含まない。直近 6 件は関連度に関わらず残す",
-      "kept": "integer",
-      "dropped": "integer",
-      "source": "jev"
-    }
+    "language": "auto|BCP-47（リクエストで解決した値）"
   },
   "errors": {
     "shape": {

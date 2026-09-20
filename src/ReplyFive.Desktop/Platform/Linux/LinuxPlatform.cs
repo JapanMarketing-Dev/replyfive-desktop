@@ -81,6 +81,46 @@ public sealed partial class LinuxPlatform : IPlatform
 
     /// <summary>アプリ ID（付録CH）。.desktop・アイコン・Portal の app_id に使い、Snap / Flatpak / .deb のパッケージと同じ名前にする。</summary>
     public const string AppId = "app.replyfive.ReplyFive";
+
+    /// <summary>付録CF-9：.desktop の Name=（システム・利用者・Flatpak・Snap）と、起動中プロセスの名前。</summary>
+    public IReadOnlyList<string> InstalledAppNames()
+    {
+        var names = new List<string>();
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var dataHome = Environment.GetEnvironmentVariable("XDG_DATA_HOME") is { Length: > 0 } dh ? dh : Path.Combine(home, ".local", "share");
+        var dirs = new[] { "/usr/share/applications", "/usr/local/share/applications", Path.Combine(dataHome, "applications"),
+            "/var/lib/flatpak/exports/share/applications", Path.Combine(dataHome, "flatpak", "exports", "share", "applications"), "/var/lib/snapd/desktop/applications" };
+        foreach (var dir in dirs)
+        {
+            try
+            {
+                if (!Directory.Exists(dir)) continue;
+                foreach (var f in Directory.EnumerateFiles(dir, "*.desktop"))
+                {
+                    try
+                    {
+                        foreach (var line in File.ReadLines(f))
+                        {
+                            if (line.StartsWith("Name=", StringComparison.Ordinal)) { names.Add(line[5..].Trim()); break; }
+                            if (line.StartsWith('[') && !line.StartsWith("[Desktop Entry]", StringComparison.Ordinal)) break;
+                        }
+                    }
+                    catch (Exception) { }
+                }
+            }
+            catch (Exception) { }
+        }
+        try
+        {
+            foreach (var p in Directory.EnumerateDirectories("/proc"))
+            {
+                if (!int.TryParse(Path.GetFileName(p), out _)) continue;
+                try { names.Add(File.ReadAllText(Path.Combine(p, "comm")).Trim()); } catch (Exception) { }
+            }
+        }
+        catch (Exception) { }
+        return names;
+    }
     static string DesktopFileName => AppId + ".desktop";
     static string IconsDir => Path.Combine(Environment.GetEnvironmentVariable("XDG_DATA_HOME") is { Length: > 0 } d ? d : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "share"), "icons", "hicolor", "256x256", "apps");
 

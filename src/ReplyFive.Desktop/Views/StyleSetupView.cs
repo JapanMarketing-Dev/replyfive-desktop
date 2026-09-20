@@ -6,256 +6,163 @@ using Avalonia.Threading;
 using ReplyFive.Core;
 using ReplyFive.Desktop.Services;
 using static ReplyFive.Desktop.Services.L10n;
+using static ReplyFive.Desktop.Views.OnboardingStyle;
 using static ReplyFive.Desktop.Views.SettingsWindow;
 
 namespace ReplyFive.Desktop.Views;
 
-/// <summary>付録CD：「返し方」の収集と最適化。
-/// 1) 3 つの場面（顧客メール・同僚チャット・取引先チャット）に、利用者が自分の言葉で返信を書く（サインイン済みなら AI の案から直せる）
-/// 2) その返信から文体のラベルを Jev で判定し、利用者が確認・調整して保存する。プレビューで生成を試せる。</summary>
+/// <summary>付録CF-6：「会話を見せてください」（macOS 版 StyleSetupView.swift の移植）。初回設定の最後のステップとして、また設定の「返し方 → 会話を見せる…」から単独で開く。
+/// 利用者が普段のチャット・メールアプリを開くと、ReplyFive が読み取った相手と、そこでのやり取り（相手の発言と自分の返信）が並ぶ。
+/// 選んだアプリごとに「自分の返信入りの相手」が集まり、一定量に達したら完了。返し方は実際の返信から裏で判定し、画面には出さない。</summary>
 public sealed class StyleSetupView : ScrollViewer
 {
     readonly App app;
     AppSettings S => app.Settings;
     readonly Action finish;
-    public sealed record Scenario(string Id, Core.Platform Platform, RecipientType Recipient)
-    {
-        public string Title => L($"style.scenario.{Id}.title");
-        public string Received => L($"style.scenario.{Id}.received");
-        public string Hint => L($"style.scenario.{Id}.hint");
-    }
-    public static readonly Scenario[] Scenarios =
-    [
-        new("email_customer", Core.Platform.Gmail, RecipientType.Customer),
-        new("chat_colleague", Core.Platform.Slack, RecipientType.Internal),
-        new("chat_partner", Core.Platform.Chatwork, RecipientType.Partner),
-    ];
+    readonly int? stepOffset;
+    readonly DispatcherTimer timer;
+    List<ReviewCandidate> candidates = [];
+    List<AppProgress> progress = [];
+    bool finishing;
 
-    readonly string[] replies = new string[Scenarios.Length];
-    StyleProfile profile = new();
-    Dictionary<string, double> confidence = [];
-    string? profileStatus;
-    bool judging;
-    string? preview;
-    bool previewBusy;
-
-    public StyleSetupView(App app, Action finish)
+    public StyleSetupView(App app, Action finish, int? stepOffset = null)
     {
-        this.app = app; this.finish = finish;
-        for (var i = 0; i < replies.Length; i++) replies[i] = "";
-        var saved = S.StyleSamples.Load();
-        for (var i = 0; i < Scenarios.Length; i++) if (saved.FirstOrDefault(s => s.Scenario == Scenarios[i].Id) is { } s) replies[i] = s.Reply;
-        if (S.StyleProfile is { } p) profile = p.Clone();
-        BuildSamples();
+        this.app = app; this.finish = finish; this.stepOffset = stepOffset;
+        Refresh(force: true);
+        timer = new DispatcherTimer(TimeSpan.FromSeconds(1), DispatcherPriority.Background, (_, _) => { if (IsVisible) Refresh(); });
+        AttachedToVisualTree += (_, _) => timer.Start();
+        DetachedFromVisualTree += (_, _) => timer.Stop();
     }
 
-    // MARK: - 1) 返し方の収集
+    List<AppCatalogEntry> Selected => AppCatalog.Entries(S.SelectedPlatforms);
+    bool Enough => OnboardingReview.IsEnough(progress);
+    int OwnReplies => progress.Sum(p => p.WithOwnReply);
 
-    int FilledCount => replies.Count(r => r.Trim().Length > 0);
-
-    void BuildSamples()
+    void Refresh(bool force = false)
     {
-        var stack = new StackPanel { Spacing = 16, Margin = new Thickness(24) };
-        stack.Children.Add(new TextBlock { Text = L("style.title"), FontSize = 20, FontWeight = FontWeight.SemiBold });
-        stack.Children.Add(new TextBlock { Text = L("style.intro"), FontSize = 13, Foreground = new SolidColorBrush(Color.Parse("#6B7280")), TextWrapping = TextWrapping.Wrap });
-        var errorText = new TextBlock { Classes = { "caption" }, Foreground = Brushes.Red, IsVisible = false };
-        Button? next = null;
-        for (var index = 0; index < Scenarios.Length; index++)
-        {
-            var i = index;
-            var sc = Scenarios[i];
-            var box = new TextBox { Text = replies[i], AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, MinHeight = 72 };
-            var count = Cap(L("style.reply.count", replies[i].Trim().Length));
-            box.TextChanged += (_, _) => { replies[i] = box.Text ?? ""; count.Text = L("style.reply.count", replies[i].Trim().Length); if (next is not null) next.IsEnabled = FilledCount > 0; };
-            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto") };
-            if (S.IsRegistered)
-            {
-                var suggest = new Button { Content = L("style.suggest"), FontSize = 12 };
-                suggest.Click += async (_, _) =>
-                {
-                    suggest.IsEnabled = false; suggest.Content = L("style.suggest.busy"); errorText.IsVisible = false;
-                    var req = new FormatRequest(sc.Platform, sc.Recipient, S.DefaultTone, sc.Hint, new ConversationContext(ContextSource.SelectedText, null, sc.Received), [], S.ClientInfo, S.OutputLanguage,
-                        S.SenderForRequest is { } sender ? new FormatRequest.SenderInfo(sender.Name) : null);
-                    try { var res = await S.MakeClient().Format(req); box.Text = res.Text; }
-                    catch (ApiException e) { errorText.Text = L("style.suggest.failed", e.Code); errorText.IsVisible = true; }
-                    catch (Exception) { errorText.Text = L("style.suggest.failed", "unreachable"); errorText.IsVisible = true; }
-                    suggest.IsEnabled = true; suggest.Content = L("style.suggest");
-                };
-                Grid.SetColumn(suggest, 0); row.Children.Add(suggest);
-            }
-            Grid.SetColumn(count, 2); row.Children.Add(count);
-            stack.Children.Add(Col(
-                Head(sc.Title),
-                new Border { Background = new SolidColorBrush(Color.Parse("#0F000000")), CornerRadius = new CornerRadius(8), Padding = new Thickness(10), Child = new TextBlock { Text = sc.Received, FontSize = 13, TextWrapping = TextWrapping.Wrap } },
-                Cap(L("style.reply.prompt", sc.Hint)),
-                box, row));
-        }
-        stack.Children.Add(errorText);
-        stack.Children.Add(Cap(L("style.privacy")));
-        var later = new Button { Content = L("style.later"), Classes = { "link" } };
-        later.Click += (_, _) => { Growth.Track("style_setup_skipped"); finish(); };
-        next = new Button { Content = L("style.next"), Classes = { "primary" }, Padding = new Thickness(18, 6), IsEnabled = FilledCount > 0 };
-        next.Click += (_, _) => ToOptimize();
-        var footer = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), Children = { later, next } };
-        Grid.SetColumn(later, 0); Grid.SetColumn(next, 2);
-        stack.Children.Add(footer);
-        Content = stack;
+        List<ConversationEntry> entries;
+        try { entries = S.Conversations.Load(); } catch (Exception) { entries = []; }
+        var fresh = OnboardingReview.Candidates(entries);
+        var p = OnboardingReview.Progress(entries, Selected);
+        var changed = force || !fresh.Select(c => c.Id).SequenceEqual(candidates.Select(c => c.Id))
+                      || !fresh.SelectMany(c => c.Exchange.Select(m => m.Identity)).SequenceEqual(candidates.SelectMany(c => c.Exchange.Select(m => m.Identity)))
+                      || !p.SequenceEqual(progress);
+        if (!changed) return;
+        candidates = fresh; progress = p;
+        Diag.LogIfChanged($"onboarding show candidates={fresh.Count} own_replies={OwnReplies} enough={Enough} apps={progress.Count}");   // 本文は書かない
+        Build();
     }
 
-    void ToOptimize()
-    {
-        for (var i = 0; i < Scenarios.Length; i++)
-        {
-            var reply = replies[i].Trim();
-            if (reply.Length == 0) continue;
-            try { S.StyleSamples.Put(Scenarios[i].Id, Scenarios[i].Received, reply); } catch (Exception) { }
-        }
-        Growth.Track("style_samples_saved", new() { ["count"] = FilledCount });
-        BuildOptimize();
-        Judge();
-    }
-
-    // MARK: - 2) 最適化
-
-    TextBlock? statusText;
-    ProgressBar? statusSpinner;
-    readonly Dictionary<string, List<RadioButton>> fieldButtons = [];
-    readonly Dictionary<string, TextBlock> confidenceTexts = [];
-    TextBlock? previewText;
-    Border? previewBox;
-    Button? previewButton;
-    Button? doneButton;
-
-    void BuildOptimize()
+    void Build()
     {
         var stack = new StackPanel { Spacing = 14, Margin = new Thickness(24) };
-        stack.Children.Add(new TextBlock { Text = L("style.optimize.title"), FontSize = 20, FontWeight = FontWeight.SemiBold });
-        stack.Children.Add(new TextBlock { Text = L("style.optimize.intro"), FontSize = 13, Foreground = new SolidColorBrush(Color.Parse("#6B7280")), TextWrapping = TextWrapping.Wrap });
-        statusSpinner = new ProgressBar { IsIndeterminate = true, Width = 60, Height = 4, IsVisible = false, VerticalAlignment = VerticalAlignment.Center };
-        statusText = Cap("");
-        stack.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { statusSpinner, statusText } });
-        fieldButtons.Clear(); confidenceTexts.Clear();
-        foreach (var field in StyleProfile.Fields)
+        stack.Children.Add(Hero(stepOffset is { } so ? so + 1 : null, (stepOffset ?? 0) + 1, L("style.show.title"), L("style.show.intro"), S, Build));
+
+        // 目安：選んだアプリごとの進み具合
+        var goal = new StackPanel { Spacing = 10 };
+        var head = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), ColumnSpacing = 8 };
+        var mark = Enough ? Icon_(Icons.CheckCircle, "#16A34A") : LiveDot(); Grid.SetColumn(mark, 0);
+        var title = Head(Enough ? L("style.show.enough") : L("style.show.goal")); title.VerticalAlignment = VerticalAlignment.Center; Grid.SetColumn(title, 1);
+        var count = Cap(L("style.show.count", candidates.Count)); Grid.SetColumn(count, 2);
+        head.Children.Add(mark); head.Children.Add(title); head.Children.Add(count);
+        goal.Children.Add(head);
+        goal.Children.Add(new ProgressBar { Minimum = 0, Maximum = OnboardingReview.EnoughContacts, Value = Math.Min(OwnReplies, OnboardingReview.EnoughContacts), Height = 6, Foreground = Gradient });
+        foreach (var p in progress)
         {
-            var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-            header.Children.Add(new TextBlock { Text = L("style.field." + field), FontSize = 13, FontWeight = FontWeight.SemiBold });
-            var conf = new TextBlock { FontSize = 11, Foreground = new SolidColorBrush(Color.Parse("#6B7280")), VerticalAlignment = VerticalAlignment.Center };
-            confidenceTexts[field] = conf;
-            header.Children.Add(conf);
-            var options = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
-            var buttons = new List<RadioButton>();
-            foreach (var option in StyleProfile.Vocabulary[field])
-            {
-                var rb = new RadioButton { Content = L($"style.value.{field}.{option}"), GroupName = "style-" + field, Tag = option, FontSize = 13 };
-                rb.IsCheckedChanged += (_, _) => { if (rb.IsChecked == true) profile.Set(field, option); };
-                buttons.Add(rb);
-                options.Children.Add(rb);
-            }
-            fieldButtons[field] = buttons;
-            stack.Children.Add(Col(header, options));
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+            row.Children.Add(Icon_(p.Done ? Icons.CheckCircle : Icons.Circle, p.Done ? "#16A34A" : "#9CA3AF"));
+            row.Children.Add(AppBadge(p.App));
+            row.Children.Add(Cap(p.Done ? L("style.show.app.done", p.WithOwnReply) : (p.Contacts > 0 ? L("style.show.app.partial", p.Contacts) : L("style.show.app.waiting"))));
+            goal.Children.Add(row);
         }
-        stack.Children.Add(new Separator());
-        previewButton = new Button { Content = L("style.preview.button"), IsEnabled = S.IsRegistered };
-        previewButton.Click += (_, _) => RunPreview();
-        stack.Children.Add(SettingsWindow.Row(previewButton, Cap(L("style.preview.hint"))));
-        previewText = new TextBlock { FontSize = 13, TextWrapping = TextWrapping.Wrap };
-        previewBox = new Border { Background = new SolidColorBrush(Color.Parse("#143B6CFF")), CornerRadius = new CornerRadius(8), Padding = new Thickness(10), IsVisible = false, Child = Col(Cap(Scenarios[0].Received), new SelectableTextBlock { Text = "", FontSize = 13, TextWrapping = TextWrapping.Wrap, Name = "PreviewBody" }) };
-        stack.Children.Add(previewBox);
-        var back = new Button { Content = L("style.back"), Classes = { "link" } };
-        back.Click += (_, _) => BuildSamples();
-        doneButton = new Button { Content = L("style.done"), Classes = { "primary" }, Padding = new Thickness(18, 6) };
-        doneButton.Click += (_, _) => Save();
-        var footer = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), Children = { back, doneButton } };
-        Grid.SetColumn(back, 0); Grid.SetColumn(doneButton, 2);
-        stack.Children.Add(footer);
+        if (!S.IsRegistered) goal.Children.Add(new TextBlock { Text = L("style.show.signin"), FontSize = 12, Foreground = new SolidColorBrush(Color.Parse("#D97706")), TextWrapping = TextWrapping.Wrap });
+        stack.Children.Add(Card(goal));
+
+        // 読み取った相手と、そこでのやり取り
+        foreach (var c in candidates)
+        {
+            var card = new StackPanel { Spacing = 8 };
+            var top = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), ColumnSpacing = 10 };
+            var avatar = ContactAvatar(c.ContactName, c.Platform); Grid.SetColumn(avatar, 0);
+            var info = new StackPanel { Spacing = 3, VerticalAlignment = VerticalAlignment.Center };
+            info.Children.Add(new TextBlock { Text = c.ContactName ?? L("style.review.unknown_contact"), FontSize = 13, FontWeight = FontWeight.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis, Foreground = OnboardingStyle.Text });
+            var meta = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+            meta.Children.Add(PlatformBadge(c.Platform, c.AppName));
+            meta.Children.Add(new TextBlock { Text = L("style.show.contact.messages", c.Context.Count), FontSize = 11, Foreground = SecondaryText, VerticalAlignment = VerticalAlignment.Center });
+            if (c.Exchange.Any(m => m.Role == "me")) meta.Children.Add(new TextBlock { Text = "↩ " + L("style.show.contact.replied"), FontSize = 11, Foreground = new SolidColorBrush(Color.Parse("#16A34A")), VerticalAlignment = VerticalAlignment.Center });
+            info.Children.Add(meta);
+            Grid.SetColumn(info, 1);
+            top.Children.Add(avatar); top.Children.Add(info);
+            card.Children.Add(top);
+            var bubbles = new StackPanel { Spacing = 6 };
+            foreach (var m in c.Exchange) bubbles.Children.Add(ChatBubble(m, c.ContactName, 120));
+            card.Children.Add(bubbles);
+            stack.Children.Add(Card(card));
+        }
+        if (candidates.Count == 0)
+        {
+            var empty = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+            empty.Children.Add(LiveDot());
+            empty.Children.Add(new TextBlock { Text = L("style.show.empty"), FontSize = 13, Foreground = SecondaryText, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center });
+            stack.Children.Add(Card(empty));
+        }
+        stack.Children.Add(Cap(L("style.show.apps")));
+        stack.Children.Add(Cap(L("style.privacy")));
+
+        var buttons = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto,Auto"), ColumnSpacing = 8 };
+        var later = new Button { Content = L("style.later"), Classes = { "link" } };
+        later.Click += (_, _) => { Growth.Track("style_setup_skipped"); finish(); };
+        Grid.SetColumn(later, 0); buttons.Children.Add(later);
+        if (!Enough && OwnReplies >= 1)
+        {
+            var early = new Button { Content = L("style.show.finish_early"), Classes = { "link" }, IsEnabled = !finishing };
+            early.Click += (_, _) => Complete();
+            Grid.SetColumn(early, 2); buttons.Children.Add(early);
+        }
+        var done = GradientButton(finishing ? L("style.show.finishing") : L("style.done"));
+        done.IsEnabled = Enough && !finishing;
+        done.Click += (_, _) => Complete();
+        Grid.SetColumn(done, 3); buttons.Children.Add(done);
+        stack.Children.Add(buttons);
         Content = stack;
-        ApplyProfileToButtons();
     }
 
-    void ApplyProfileToButtons()
+    /// <summary>完了：実際のやり取り（相手の発言 → 自分の返信）を style.bin に置き、返し方を裏で判定して保存する。画面には出さない。
+    /// 判定できなくても完了にする（生成時は相手ごとの会話・修正例が優先されるので、判定は補助）。</summary>
+    async void Complete()
     {
-        foreach (var (field, buttons) in fieldButtons)
+        if (finishing) return;
+        finishing = true; Build();
+        List<ConversationEntry> entries;
+        try { entries = S.Conversations.Load(); } catch (Exception) { entries = []; }
+        var samples = OnboardingReview.StyleSamples(entries);
+        try
         {
-            var value = profile.Get(field);
-            foreach (var b in buttons) b.IsChecked = (string?)b.Tag == value;
-            confidenceTexts[field].Text = confidence.TryGetValue(field, out var c) && c > 0 ? L("style.field.confidence", (int)Math.Round(c * 100)) : "";
+            S.StyleSamples.DeleteAll();
+            foreach (var s in samples) S.StyleSamples.Put(s.Scenario, s.Received, s.Reply);
         }
-        if (statusText is not null) statusText.Text = profileStatus ?? "";
-        if (statusSpinner is not null) statusSpinner.IsVisible = judging;
-        if (doneButton is not null) doneButton.IsEnabled = !judging;
-    }
-
-    static readonly StyleProfile Fallback = new() { Formality = "standard", Length = "medium", Greeting = "light", Closing = "light", Emoji = "none" };
-
-    /// <summary>保存済みのサンプルから Jev の判定を取る。サインインしていない・失敗したときは既定値を置き、利用者が選ぶ。</summary>
-    void Judge()
-    {
+        catch (Exception e) { Diag.Log("style samples save failed " + e.GetType().Name); }
+        Growth.Track("onboarding_conversations", new() { ["contacts"] = candidates.Count });
+        Growth.Track("style_samples_saved", new() { ["count"] = samples.Count });
         var request = S.StyleSamples.Request();
-        if (!S.IsRegistered || request.Samples.Count == 0)
+        var source = "none";
+        if (S.IsRegistered && request.Samples.Count > 0)
         {
-            profile = (S.StyleProfile ?? Fallback).Clone();
-            profileStatus = L("style.optimize.status.offline");
-            ApplyProfileToButtons();
-            return;
+            try
+            {
+                var res = await S.MakeClient().StyleProfile(request);
+                if (res.Source != "none" && !res.Profile.Normalized.IsEmpty) { S.StyleProfile = res.Profile.Normalized; source = res.Source; }
+            }
+            catch (Exception e) { Diag.Log("style profile failed " + e.GetType().Name); }
         }
-        judging = true;
-        profileStatus = L("style.optimize.status.judging");
-        ApplyProfileToButtons();
-        var client = S.MakeClient();
-        _ = Task.Run(async () =>
-        {
-            StyleProfileResponse? res = null;
-            try { res = await client.StyleProfile(request); } catch (Exception) { }
-            await Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                judging = false;
-                var judged = res?.Profile.Normalized;
-                if (res is null || res.Source == "none" || judged is null || judged.IsEmpty)
-                {
-                    profile = (S.StyleProfile ?? Fallback).Clone();
-                    profileStatus = L("style.optimize.status.failed");
-                }
-                else
-                {
-                    profile = new StyleProfile { Formality = judged.Formality ?? Fallback.Formality, Length = judged.Length ?? Fallback.Length, Greeting = judged.Greeting ?? Fallback.Greeting, Closing = judged.Closing ?? Fallback.Closing, Emoji = judged.Emoji ?? Fallback.Emoji };
-                    confidence = res.Confidence ?? [];
-                    profileStatus = L("style.optimize.status.done");
-                    Growth.Track("style_profile_judged", new() { ["source"] = res.Source });
-                }
-                ApplyProfileToButtons();
-            });
-        });
+        Done(source);
     }
 
-    void RunPreview()
+    void Done(string source)
     {
-        if (previewBusy || previewButton is null) return;
-        previewBusy = true;
-        previewButton.IsEnabled = false; previewButton.Content = L("style.preview.busy");
-        var sc = Scenarios[0];
-        var sender = new FormatRequest.SenderInfo(S.SenderForRequest?.Name ?? "", profile.Normalized);
-        var req = new FormatRequest(sc.Platform, sc.Recipient, S.DefaultTone, sc.Hint, new ConversationContext(ContextSource.SelectedText, null, sc.Received), [], S.ClientInfo, S.OutputLanguage, sender);
-        var client = S.MakeClient();
-        _ = Task.Run(async () =>
-        {
-            string text;
-            try { text = (await client.Format(req)).Text; } catch (Exception) { text = L("style.preview.failed"); }
-            await Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                previewBusy = false;
-                previewButton.IsEnabled = S.IsRegistered; previewButton.Content = L("style.preview.button");
-                preview = text;
-                if (previewBox?.Child is StackPanel sp && sp.Children.OfType<SelectableTextBlock>().FirstOrDefault() is { } body) body.Text = text;
-                if (previewBox is not null) previewBox.IsVisible = true;
-            });
-        });
-    }
-
-    void Save()
-    {
-        S.StyleProfile = profile.Normalized;
         S.StyleOnboardingDone = true;
-        Growth.Track("style_profile_saved", new() { ["formality"] = profile.Formality ?? "", ["length"] = profile.Length ?? "" });
+        Growth.Track("style_profile_saved", new() { ["formality"] = S.StyleProfile?.Formality ?? "", ["length"] = S.StyleProfile?.Length ?? "", ["source"] = source });
+        finishing = false;
         finish();
     }
 }

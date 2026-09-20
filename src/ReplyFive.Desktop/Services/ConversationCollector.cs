@@ -11,7 +11,6 @@ public sealed class ConversationCollector : IDisposable
     readonly AppSettings settings;
     readonly IPlatform platform;
     readonly DispatcherTimer poll;
-    readonly DispatcherTimer evaluationTimer;
     TargetApp? current;
     bool reading;
     int? lastSignature;
@@ -23,9 +22,6 @@ public sealed class ConversationCollector : IDisposable
         this.settings = settings; this.platform = platform;
         poll = new DispatcherTimer(TimeSpan.FromMilliseconds(500), DispatcherPriority.Background, (_, _) => Tick());
         poll.Start();
-        evaluationTimer = new DispatcherTimer(TimeSpan.FromHours(24), DispatcherPriority.Background, (_, _) => RunPeriodicEvaluation());
-        evaluationTimer.Start();
-        Dispatcher.UIThread.Post(RunPeriodicEvaluation, DispatcherPriority.Background);
     }
 
     bool Enabled => settings.EffectiveConversationEnabled;
@@ -71,109 +67,16 @@ public sealed class ConversationCollector : IDisposable
         Store("shortcut", c.Platform, c.ContactKey, c.ContactName, c.AppName, msgs);
     }
 
-    // 付録BV：規則で落ちなかった発言のうち、この相手の記録にまだ無いものだけをサーバ（Jev）に「人が書いた発言か」を問い、残ったものだけを保存する。
-    sealed record PendingBatch(string Source, Core.Platform Platform, string ContactKey, string? ContactName, string? AppName, List<ConversationMessage> Snapshot);
-    readonly List<PendingBatch> filterQueue = [];
-    bool filtering;
-    const int MaxFilterMessages = 60;
-    readonly HashSet<string> evaluating = [];
-
+    // 付録BV：規則（ConversationNoise）で落ちなかった発言のうち、この相手の記録にまだ無いものを保存する。本文はサーバへ送らない。
     void Store(string source, Core.Platform plat, string contactKey, string? contactName, string? appName, List<ConversationMessage> snapshot)
     {
         var fresh = settings.Conversations.NewMessages(plat, contactKey, contactName, snapshot);
         if (fresh.Count == 0) return;
-        filterQueue.RemoveAll(b => b.Platform == plat && b.ContactKey == contactKey);
-        filterQueue.Add(new PendingBatch(source, plat, contactKey, contactName, appName, snapshot));
-        DrainFilterQueue();
+        var added = settings.Conversations.Ingest(plat, contactKey, contactName, appName, snapshot);
+        if (added > 0 && settings.EffectiveLearningEnabled)
+            foreach (var m in snapshot) if (m.Role == "me") { try { settings.Records.MarkSent(plat, contactKey, m.Text); } catch (Exception) { } }
+        if (added > 0) Diag.Log($"conversation ingest source={source} platform={plat.Wire()} fresh={fresh.Count} added={added}");
     }
-
-    void DrainFilterQueue()
-    {
-        if (filtering || filterQueue.Count == 0) return;
-        var batch = filterQueue[0]; filterQueue.RemoveAt(0);
-        filtering = true;
-        var fresh = settings.Conversations.NewMessages(batch.Platform, batch.ContactKey, batch.ContactName, batch.Snapshot);
-        fresh = fresh.Skip(Math.Max(0, fresh.Count - MaxFilterMessages)).ToList();
-        if (fresh.Count == 0) { filtering = false; DrainFilterQueue(); return; }
-        var client = settings.MakeClient();
-        var req = new ContextFilterRequest(batch.Platform.Wire(), batch.ContactName, fresh.Select(m => m.ToContext()).ToList());
-        _ = Task.Run(async () =>
-        {
-            var drop = new HashSet<string>();
-            var source = "rules";
-            long elapsed = 0;
-            if (client.DeviceToken is not null)
-            {
-                try
-                {
-                    var res = await client.FilterContext(req);
-                    if (res.Keep.Count == fresh.Count)
-                    {
-                        source = res.Source; elapsed = res.ElapsedMs ?? 0;
-                        for (var i = 0; i < res.Keep.Count; i++) if (!res.Keep[i]) drop.Add(fresh[i].Identity);
-                    }
-                }
-                catch (Exception) { }
-            }
-            var kept = batch.Snapshot.Where(m => !drop.Contains(m.Identity)).ToList();
-            var added = kept.Count == 0 ? 0 : settings.Conversations.Ingest(batch.Platform, batch.ContactKey, batch.ContactName, batch.AppName, kept);
-            if (added > 0 && settings.EffectiveLearningEnabled)
-                foreach (var m in kept) if (m.Role == "me") { try { settings.Records.MarkSent(batch.Platform, batch.ContactKey, m.Text); } catch (Exception) { } }
-            if (added > 0 || drop.Count > 0) Diag.Log($"conversation ingest source={batch.Source} platform={batch.Platform.Wire()} judged={fresh.Count} dropped={drop.Count} added={added} filter={source} ms={elapsed}");
-            Dispatcher.UIThread.Post(() => { filtering = false; DrainFilterQueue(); });
-        });
-    }
-
-    /// <summary>収集済みの実際の往復を教師用／テスト用に分け、テスト組だけを裏側で生成へ通す。返った文面は対象アプリへ渡さず、設定画面で確認する暗号化された生成例として端末内へ残す。</summary>
-    void ScheduleBackgroundEvaluation(Core.Platform plat, string contactKey, string? contactName, string? appName)
-    {
-        if (!settings.IsRegistered || !Enabled || !settings.EffectiveLearningEnabled) return;
-        var key = plat.Wire() + "\u0001" + contactKey;
-        if (evaluating.Contains(key)) return;
-        var messages = settings.Conversations.RecentMessages(plat, contactKey, 12_000);
-        var dataset = ConversationEvaluation.Dataset(plat, contactKey, messages);
-        var pending = ConversationEvaluation.PendingTests(dataset, settings.BackgroundEvaluations.CompletedIds());
-        if (pending.Count == 0) return;
-        evaluating.Add(key);
-        var teacher = dataset.Teacher.Select(p => new LearnedExample(p.Intent, p.Expected));
-        var learned = settings.Records.Examples(plat, contactKey);
-        var examples = teacher.Concat(learned).Take(LearningStore.MaxSent).ToList();
-        var client = settings.MakeClient();
-        var requests = pending.Select(pair =>
-        {
-            var recipient = ReplyNameSafety.RecipientName(pair.Context, contactName, appName, requireRepeated: true);
-            var context = new ConversationContext(ContextSource.Window, appName, ConversationParser.Render(pair.Context), recipient, pair.Context.Select(m => m.ToContext()).ToList());
-            return (pair.Id, new FormatRequest(plat, settings.DefaultRecipient, settings.DefaultTone, pair.Intent, context, examples, settings.ClientInfo, settings.OutputLanguage, settings.SenderForRequest));
-        }).ToList();
-        var store = settings.BackgroundEvaluations;
-        _ = Task.Run(async () =>
-        {
-            var passed = 0;
-            foreach (var (id, request) in requests)
-            {
-                if (client.DeviceToken is null) break;
-                try
-                {
-                    var response = await client.Format(request);
-                    var accepted = response.MeaningVerified && (response.Verification?.Passed ?? true);
-                    store.Record(id, accepted, accepted, plat, request.ConversationContext?.ContactName, appName, response.Text);
-                    if (accepted) passed++;
-                }
-                catch (Exception) { }
-            }
-            Diag.Log($"background evaluation platform={plat.Wire()} cases={requests.Count} passed={passed}");
-            Dispatcher.UIThread.Post(() => evaluating.Remove(key));
-        });
-    }
-
-    /// <summary>1 日 1 回、全接触先の最新データを再評価する。</summary>
-    void RunPeriodicEvaluation()
-    {
-        if (!settings.IsRegistered || !Enabled || !settings.EffectiveLearningEnabled) return;
-        foreach (var e in settings.Conversations.Load()) ScheduleBackgroundEvaluation(e.Platform, e.ContactKey, e.ContactName, e.AppName);
-    }
-
-    public void RunTuningNow() => RunPeriodicEvaluation();
 
     void Read(TargetApp app, string own)
     {
@@ -200,5 +103,5 @@ public sealed class ConversationCollector : IDisposable
         });
     }
 
-    public void Dispose() { poll.Stop(); evaluationTimer.Stop(); settings.Conversations.Flush(); }
+    public void Dispose() { poll.Stop(); settings.Conversations.Flush(); }
 }

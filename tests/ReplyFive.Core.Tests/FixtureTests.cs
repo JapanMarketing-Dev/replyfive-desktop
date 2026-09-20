@@ -105,20 +105,6 @@ public class FixtureTests
     }
 
     [Fact]
-    public void ContextFilterFixtureDecodes()
-    {
-        var f = Load("context-filter.json");
-        var req = JsonSerializer.Deserialize<ContextFilterRequest>(f["request"]!.ToJsonString(), ContractJson.Options)!;
-        Assert.Equal(3, req.Messages.Count);
-        Assert.Equal("山田", req.ContactName);
-        var res = JsonSerializer.Deserialize<ContextFilterResponse>(f["response"]!.ToJsonString(), ContractJson.Options)!;
-        Assert.Equal([false, true, true], res.Keep);
-        Assert.Equal("jev", res.Source);
-        var none = JsonSerializer.Deserialize<ContextFilterResponse>(f["response_unavailable"]!.ToJsonString(), ContractJson.Options)!;
-        Assert.Equal("none", none.Source);
-    }
-
-    [Fact]
     public void MetaLatestClientCarriesEveryOs()
     {
         var meta = JsonSerializer.Deserialize<MetaResponse>("""{"mode":"saas","version":"0.8.5","contract_version":"0.2","llm":{"provider":"groq","model":"m"},"latest_client":{"macos":{"version":"0.8.0","download_url":"https://replyfive.app/download/macos"},"windows":{"version":"0.8.0","download_url":"https://replyfive.app/download/windows"},"linux":{"version":null,"download_url":"https://replyfive.app/download/linux"}}}""", ContractJson.Options)!;

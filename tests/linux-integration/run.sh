@@ -7,6 +7,6 @@ ROOT="$(cd "$HERE/../.." && pwd)"
 ENGINE="${ENGINE:-podman}"
 ARCH="${ARCH:-$(uname -m)}"
 case "$ARCH" in arm64|aarch64) RID=linux-arm64 ;; *) RID=linux-x64 ;; esac
-$ENGINE build -t replyfive-linux-test "$HERE"
+$ENGINE build -f "$HERE/Containerfile" -t replyfive-linux-test "$HERE"
 mkdir -p "$ROOT/dist/shots"
 $ENGINE run --rm -v "$ROOT/dist/$RID:/work/app:ro" -v "$ROOT/dist/server-$RID:/work/server:ro" -v "$ROOT/dist:/work/dist:ro" -v "$ROOT/dist/shots:/work/shots" replyfive-linux-test

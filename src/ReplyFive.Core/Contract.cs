@@ -151,6 +151,8 @@ public sealed class FormatRequest
     [JsonPropertyName("tone")] public Tone Tone { get; set; }
     [JsonPropertyName("language")] public string Language { get; set; } = "auto";
     [JsonPropertyName("user_intent")] public string UserIntent { get; set; } = "";
+    /// <summary>付録CF：true なら user_intent は空でよく、会話だけから「次に送りそうな返信」を作る（conversation_context が必須）。</summary>
+    [JsonPropertyName("auto_intent"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public bool? AutoIntent { get; set; }
     [JsonPropertyName("conversation_context")] public ConversationContext? ConversationContext { get; set; }
     [JsonPropertyName("learned_examples")] public List<LearnedExample> LearnedExamples { get; set; } = [];
     [JsonPropertyName("sender")] public SenderInfo? Sender { get; set; }
@@ -190,92 +192,18 @@ public sealed class FormatResponse
     [JsonPropertyName("text")] public string Text { get; set; } = "";
     [JsonPropertyName("provider")] public string Provider { get; set; } = "";
     [JsonPropertyName("model")] public string Model { get; set; } = "";
-    [JsonPropertyName("meaning_verified")] public bool MeaningVerified { get; set; }
     [JsonPropertyName("context_supplied")] public bool ContextSupplied { get; set; }
     [JsonPropertyName("policy_applied")] public bool PolicyApplied { get; set; }
     [JsonPropertyName("language")] public string? Language { get; set; }
     [JsonPropertyName("request_id")] public string RequestId { get; set; } = "";
     [JsonPropertyName("elapsed_ms")] public int ElapsedMs { get; set; }
     [JsonPropertyName("warnings")] public List<string> Warnings { get; set; } = [];
-    /// <summary>付録BB：サーバ側の事前分類。分類器が無い・タイムアウトなら無い。</summary>
-    [JsonPropertyName("classification")] public ClassificationInfo? Classification { get; set; }
-    /// <summary>付録BC：助言コード（例 "ask_unanswered"）。</summary>
-    [JsonPropertyName("hints")] public List<string>? Hints { get; set; }
-    [JsonPropertyName("verification")] public VerificationInfo? Verification { get; set; }
-    /// <summary>付録BC：2 番目に確からしい返信種別の別案。text が主案。</summary>
-    [JsonPropertyName("candidates")] public List<Candidate>? Candidates { get; set; }
-    /// <summary>付録BV：Jev が LLM に渡す前に落とした発言数。</summary>
-    [JsonPropertyName("context_filter")] public ContextFilterInfo? ContextFilter { get; set; }
-
-    public sealed class ContextFilterInfo
-    {
-        [JsonPropertyName("kept")] public int Kept { get; set; }
-        [JsonPropertyName("dropped")] public int Dropped { get; set; }
-        [JsonPropertyName("source")] public string? Source { get; set; }
-    }
-
-    public sealed class VerificationInfo
-    {
-        [JsonPropertyName("passed")] public bool Passed { get; set; }
-        [JsonPropertyName("issues")] public List<string>? Issues { get; set; }
-        [JsonPropertyName("regenerated")] public bool? Regenerated { get; set; }
-        [JsonPropertyName("source")] public string? Source { get; set; }
-        [JsonPropertyName("elapsed_ms")] public int? ElapsedMs { get; set; }
-    }
-
-    public sealed class Candidate
-    {
-        [JsonPropertyName("reply_kind")] public string ReplyKind { get; set; } = "";
-        [JsonPropertyName("text")] public string Text { get; set; } = "";
-    }
-
-    public sealed class ClassificationInfo
-    {
-        [JsonPropertyName("reply_kind")] public string? ReplyKind { get; set; }
-        [JsonPropertyName("reply_kind_confidence")] public double? ReplyKindConfidence { get; set; }
-        [JsonPropertyName("asks")] public string? Asks { get; set; }
-        [JsonPropertyName("asks_confidence")] public double? AsksConfidence { get; set; }
-        [JsonPropertyName("formality")] public int? Formality { get; set; }
-        [JsonPropertyName("formality_confidence")] public double? FormalityConfidence { get; set; }
-        [JsonPropertyName("context_related")] public double? ContextRelated { get; set; }
-        [JsonPropertyName("intent_form")] public string? IntentForm { get; set; }
-        [JsonPropertyName("intent_form_confidence")] public double? IntentFormConfidence { get; set; }
-        [JsonPropertyName("covers_ask")] public double? CoversAsk { get; set; }
-        [JsonPropertyName("source")] public string? Source { get; set; }
-        [JsonPropertyName("elapsed_ms")] public int? ElapsedMs { get; set; }
-    }
-}
-
-/// <summary>付録BV：POST /v1/context/filter。新しく読んだ発言のうち「人が書いた発言」を判定してもらう。</summary>
-public sealed class ContextFilterRequest
-{
-    [JsonPropertyName("platform")] public string Platform { get; set; } = "";
-    [JsonPropertyName("contact_name")] public string? ContactName { get; set; }
-    [JsonPropertyName("messages")] public List<ContextMessage> Messages { get; set; } = [];
-    public ContextFilterRequest() { }
-    public ContextFilterRequest(string platform, string? contactName, List<ContextMessage> messages) { Platform = platform; ContactName = contactName; Messages = messages; }
-}
-
-public sealed class ContextFilterResponse
-{
-    [JsonPropertyName("keep")] public List<bool> Keep { get; set; } = [];
-    [JsonPropertyName("probabilities")] public List<double> Probabilities { get; set; } = [];
-    [JsonPropertyName("source")] public string Source { get; set; } = "";
-    [JsonPropertyName("elapsed_ms")] public long? ElapsedMs { get; set; }
 }
 
 /// <summary>付録BC：修正率の計測。本文（意図・文脈・生成文・最終文）は一切含めない。</summary>
 public sealed class FeedbackRequest
 {
     [JsonPropertyName("request_id")] public string RequestId { get; set; } = "";
-    [JsonPropertyName("reply_kind")] public string ReplyKind { get; set; } = "unknown";
-    [JsonPropertyName("reply_kind_confidence")] public double ReplyKindConfidence { get; set; }
-    [JsonPropertyName("asks")] public string? Asks { get; set; }
-    [JsonPropertyName("intent_form")] public string? IntentForm { get; set; }
-    [JsonPropertyName("meaning_verified")] public bool MeaningVerified { get; set; }
-    [JsonPropertyName("regenerated")] public bool Regenerated { get; set; }
-    [JsonPropertyName("candidate_offered")] public bool CandidateOffered { get; set; }
-    [JsonPropertyName("candidate_chosen")] public bool CandidateChosen { get; set; }
     [JsonPropertyName("action")] public string Action { get; set; } = "dismiss"; // insert | copy | dismiss
     [JsonPropertyName("edited")] public bool Edited { get; set; }
     [JsonPropertyName("edit_ratio")] public double EditRatio { get => editRatio; set => editRatio = Math.Clamp(value, 0, 1); }

@@ -23,14 +23,26 @@ PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 DisableProgramGroupPage=yes
 OutputDir=..\..\dist
+#ifndef Arch
+#define Arch "x64"
+#endif
+#if Arch == "x64"
 OutputBaseFilename=ReplyFive-Setup
+#else
+OutputBaseFilename=ReplyFive-Setup-{#Arch}
+#endif
 SetupIconFile=..\..\src\ReplyFive.Desktop\Assets\replyfive.ico
 UninstallDisplayIcon={app}\ReplyFive.exe
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
+#if Arch == "x64"
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
+#else
+ArchitecturesAllowed=arm64
+ArchitecturesInstallIn64BitMode=arm64
+#endif
 MinVersion=10.0.19041
 CloseApplications=yes
 RestartApplications=no

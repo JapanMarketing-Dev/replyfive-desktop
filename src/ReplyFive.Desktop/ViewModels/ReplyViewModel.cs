@@ -27,18 +27,12 @@ public sealed partial class ReplyViewModel : ObservableObject
     [ObservableProperty] string? warningNote;
     [ObservableProperty] bool showContext;
     [ObservableProperty] int learnedForContact;
-    // 付録BC
-    [ObservableProperty] bool verified;
-    [ObservableProperty] string? hint;
-    [ObservableProperty] List<string> candidateKinds = [];
-    [ObservableProperty] int selectedCandidate;
     /// <summary>Return で生成→そのまま元の入力欄へ差し込む途中。</summary>
     [ObservableProperty] bool isAutoInserting;
 
     string generated = "";
     FormatResponse? lastResponse;
     string? feedbackSentFor;
-    bool candidateChosen;
     int generation;
     CancellationTokenSource? inflight;
     bool insertWhenReady;
@@ -74,7 +68,6 @@ public sealed partial class ReplyViewModel : ObservableObject
         ClearResponse();
     }
 
-    partial void OnSelectedCandidateChanged(int oldValue, int newValue) { if (oldValue != newValue) ApplyCandidate(newValue); }
 
     public void Present(CapturedContext captured)
     {
@@ -144,9 +137,7 @@ public sealed partial class ReplyViewModel : ObservableObject
 
     void ClearResponse()
     {
-        lastResponse = null; feedbackSentFor = null; candidateChosen = false;
-        Verified = false; Hint = null; CandidateKinds = [];
-        if (SelectedCandidate != 0) SelectedCandidate = 0;
+        lastResponse = null; feedbackSentFor = null;
     }
 
     /// <summary>Return：生成が終わったら元の入力欄へ差し込んで閉じる。Alt+Return：生成だけして確認する。</summary>
@@ -182,11 +173,11 @@ public sealed partial class ReplyViewModel : ObservableObject
             try
             {
                 var res = formatter is not null ? await formatter(req, cts.Token) : await client.Format(req, cts.Token);
-                Diag.Log($"format ok provider={res.Provider} ms={res.ElapsedMs} kind={res.Classification?.ReplyKind ?? "-"} verified={res.MeaningVerified} candidates={res.Candidates?.Count ?? 0}");
+                Diag.Log($"format ok provider={res.Provider} ms={res.ElapsedMs}");
                 await Ui(() =>
                 {
                     if (cts.IsCancellationRequested || gen != generation) return;
-                    // 宛名の検証はサーバ側の Jev 検証（付録BN）に任せる。端末側で生成結果を捨てない
+                    // 端末側で生成結果を捨てない
                     Result = res.Text;
                     generated = res.Text;
                     ApplyResponseMeta(res);
@@ -227,41 +218,12 @@ public sealed partial class ReplyViewModel : ObservableObject
 
     static Task Ui(Action a) => Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(a).GetTask();
 
-    // MARK: - 付録BC: 検証結果・注意・別案・計測
+    // MARK: - 付録BC・BG: 修正率の計測
 
     void ApplyResponseMeta(FormatResponse res)
     {
         lastResponse = res;
         feedbackSentFor = null;
-        candidateChosen = false;
-        Verified = res.MeaningVerified;
-        Hint = HintText(res);
-        var alt = res.Candidates?.FirstOrDefault();
-        var primary = res.Classification?.ReplyKind;
-        CandidateKinds = alt is not null && primary is not null && alt.Text.Length > 0 && alt.ReplyKind != primary ? [primary, alt.ReplyKind] : [];
-        if (SelectedCandidate != 0) SelectedCandidate = 0;
-    }
-
-    public static string? HintText(FormatResponse res)
-    {
-        var notes = new List<string>();
-        if (res.Hints?.Contains("policy_rule_flagged") == true) notes.Add(L("panel.hint.policy_rule"));
-        if (res.Hints?.Contains("ask_unanswered") == true && res.Classification?.Asks is { } asks && asks is "decision" or "information" or "schedule" or "deliverable")
-            notes.Add(L("panel.hint.ask." + asks));
-        return notes.Count == 0 ? null : string.Join(" ", notes);
-    }
-
-    public static string KindLabel(string kind) => Has("kind." + kind) ? L("kind." + kind) : kind;
-
-    /// <summary>主案（0）と別案（1）を切り替える。表示中の文と修正検出の基準を同時に入れ替える。</summary>
-    void ApplyCandidate(int index)
-    {
-        if (lastResponse is null || Phase != Phase.Ready) return;
-        string text;
-        if (index == 1 && lastResponse.Candidates?.FirstOrDefault() is { } alt) { text = alt.Text; candidateChosen = true; }
-        else { text = lastResponse.Text; candidateChosen = false; }
-        Result = text;
-        generated = text;
     }
 
     /// <summary>修正 KPI の計測（本文なし）。1 応答につき 1 回だけ、失敗は無視する。</summary>
@@ -273,13 +235,10 @@ public sealed partial class ReplyViewModel : ObservableObject
         var edited = action != "dismiss" && generated.Length > 0 && Result != generated;
         var body = new FeedbackRequest
         {
-            RequestId = res.RequestId, ReplyKind = res.Classification?.ReplyKind ?? "unknown", ReplyKindConfidence = res.Classification?.ReplyKindConfidence ?? 0,
-            Asks = res.Classification?.Asks, IntentForm = res.Classification?.IntentForm, MeaningVerified = res.MeaningVerified,
-            Regenerated = res.Verification?.Regenerated ?? false, CandidateOffered = (res.Candidates?.Count ?? 0) > 0, CandidateChosen = candidateChosen,
-            Action = action, Edited = edited, EditRatio = edited ? EditDistance.Ratio(generated, Result) : 0, EditChars = edited ? EditDistance.Levenshtein(generated, Result) : 0,
+            RequestId = res.RequestId, Action = action, Edited = edited, EditRatio = edited ? EditDistance.Ratio(generated, Result) : 0, EditChars = edited ? EditDistance.Levenshtein(generated, Result) : 0,
             Client = Settings.ClientInfo,
         };
-        Diag.Log($"feedback action={action} edited={edited} kind={body.ReplyKind}");
+        Diag.Log($"feedback action={action} edited={edited}");
         if (!Settings.IsRegistered || formatter is not null) return;
         var client = Settings.MakeClient();
         _ = Task.Run(async () => { try { await client.Feedback(body); } catch (Exception) { } });

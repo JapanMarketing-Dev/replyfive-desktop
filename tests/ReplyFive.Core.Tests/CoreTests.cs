@@ -223,9 +223,9 @@ public class StyleTests
         Assert.Null(json["sender"]!["style"]!["length"]);
         var empty = JsonNode.Parse(JsonSerializer.Serialize(new FormatRequest(Platform.Slack, RecipientType.Internal, Tone.Natural, "ok", null, [], new("windows", "0.8.0"), sender: new(" ", new StyleProfile())), ContractJson.Options))!;
         Assert.Null(empty["sender"]);
-        var res = JsonSerializer.Deserialize<StyleProfileResponse>("""{"profile":{"formality":"standard","greeting":"light"},"confidence":{"formality":0.9},"source":"jev","elapsed_ms":120}""", ContractJson.Options)!;
+        var res = JsonSerializer.Deserialize<StyleProfileResponse>("""{"profile":{"formality":"standard","greeting":"light"},"confidence":{"formality":0.9},"source":"rules","elapsed_ms":120}""", ContractJson.Options)!;
         Assert.Equal("light", res.Profile.Greeting);
-        Assert.Equal("jev", res.Source);
+        Assert.Equal("rules", res.Source);
     }
 
     [Fact]
@@ -322,19 +322,6 @@ public class MiscTests
         var json = JsonSerializer.Serialize(new GrowthEvent("x", new() { ["a"] = new string('あ', 100) }), ContractJson.Options);
         Assert.Contains("\"ts\":", json);
         Assert.True(JsonNode.Parse(json)!["props"]!["a"]!.GetValue<string>().Length == 64);
-    }
-
-    [Fact]
-    public void EvaluationDatasetIsStable()
-    {
-        var msgs = new List<ConversationMessage>();
-        for (var i = 0; i < 20; i++) { msgs.Add(new("other", "q" + i, "A")); msgs.Add(new("me", "a" + i)); }
-        var d1 = ConversationEvaluation.Dataset(Platform.Slack, "k", msgs);
-        var d2 = ConversationEvaluation.Dataset(Platform.Slack, "k", msgs);
-        Assert.Equal(d1.Test.Select(p => p.Id), d2.Test.Select(p => p.Id));
-        Assert.True(d1.Teacher.Count + d1.Test.Count == 20);
-        Assert.NotEmpty(d1.Test);
-        Assert.NotEmpty(d1.Teacher);
     }
 
     [Fact]

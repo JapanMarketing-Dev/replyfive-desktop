@@ -54,6 +54,7 @@ public sealed class App : Application
         if (Settings.PreviousRunVersion is { } previous && previous != ReplyFiveInfo.Version)
             Growth.Track("update_applied", new() { ["from_version"] = previous, ["to_version"] = ReplyFiveInfo.Version });
         Updater = new Updater(Settings, Platform);
+        AppSettings.ApplyAppearance(Settings.Appearance);   // 付録CF-7
         vm = new ReplyViewModel(Settings, Platform);
         panel = new PanelWindow(vm, OpenSettings, OpenTrial);
         vm.OnClose = () => panel.HidePanel();
@@ -88,7 +89,7 @@ public sealed class App : Application
         if (!Settings.IsRegistered && Platform.ManagedServerUrl() is { } managed && ServerAddress.Normalized(managed) is { } server) Settings.ServerURL = server.Canonical;
         if (Platform.NeedsAccessibilitySetup && !Platform.AccessibilityTrusted) Platform.RequestAccessibility();
         if (PendingUrl is { } url) { PendingUrl = null; HandleMessage(url); }
-        if (!Settings.OnboardingDone || !Settings.StyleOnboardingDone) OpenOnboarding();
+        if (Settings.TermsAcceptedVersion != Legal.Version || !Settings.OnboardingDone || !Settings.StyleOnboardingDone) OpenOnboarding();   // 付録CF-6：同意 → 設定 → 会話を見せる
         base.OnFrameworkInitializationCompleted();
     }
 
@@ -97,7 +98,7 @@ public sealed class App : Application
         if (message.StartsWith("replyfive://", StringComparison.OrdinalIgnoreCase)) { HandleUrl(message); return; }
         if (message.StartsWith("cmd:", StringComparison.Ordinal)) { HandleCommand(message[4..]); return; }
         // 2 つ目の起動：設定か初回設定を出す
-        if (!Settings.OnboardingDone || !Settings.IsRegistered) OpenOnboarding(); else OpenSettings();
+        if (Settings.TermsAcceptedVersion != Legal.Version || !Settings.OnboardingDone || !Settings.IsRegistered) OpenOnboarding(); else OpenSettings();
     }
 
     /// <summary>開発・検証用の操作（--send cmd:…）。画面の確認（PNG 書き出し）と各ウインドウの開閉だけ。本文は扱わない。</summary>
@@ -119,6 +120,8 @@ public sealed class App : Application
             case "generate-insert": vm.GenerateAndInsert(); break;
             case "insert": vm.InsertResult(); break;
             case "copy": vm.CopyResult(); break;
+            case "onboarding-page" when parts.Length == 2 && int.TryParse(parts[1], out var pg): OpenOnboarding(); onboardingWindow?.DevGoToPage(pg); break;   // 検証用
+            case "appearance" when parts.Length == 2: Settings.Appearance = parts[1]; break;   // 検証用
             case "update-check": _ = Updater.Check(force: true); break;           // 検証用：更新の確認と取得
             case "update-install": if (Updater.ReadyVersion is not null) Updater.InstallAndRelaunch(); else Diag.Log("update-install: nothing ready"); break;
             case "state": Diag.Log($"state phase={vm.Phase} result_chars={vm.Result.Length} meta={vm.Meta} failure={vm.Failure?.Code ?? "-"} registered={Settings.IsRegistered} org={Settings.OrganizationName ?? "-"} entitlement={Settings.Entitlement?.Status ?? "-"}"); break;
@@ -361,7 +364,7 @@ public sealed class App : Application
     {
         lastInteraction = DateTimeOffset.UtcNow;
         _ = Settings.RefreshEntitlement();
-        settingsWindow ??= new SettingsWindow(this, () => collector.RunTuningNow(), OpenStyleSetup);
+        settingsWindow ??= new SettingsWindow(this, OpenStyleSetup);
         settingsWindow.Show();
         settingsWindow.Activate();
     }

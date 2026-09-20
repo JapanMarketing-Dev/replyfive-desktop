@@ -96,6 +96,12 @@ grep -q 'insert result ok=True' "$LOG" || fail "insert"
 grep -q '明日送ります' /tmp/entry.txt || fail "entry text: $(cat /tmp/entry.txt 2>/dev/null)"
 echo "entry: $(cat /tmp/entry.txt)"
 
+# 初回設定「会話を見せてください」（付録CF-6）：収集した会話が候補として並ぶか
+"$APP" --send "cmd:onboarding-page 2"; sleep 3
+import -display :99 -window root /work/shots/linux-onboarding.png 2>/dev/null || true
+grep 'onboarding show candidates=' "$LOG" | tail -1
+grep -q 'onboarding show candidates=[1-9]' "$LOG" || fail "onboarding candidates not listed"
+"$APP" --send cmd:hide
 # 会話の記録（背景収集）が溜まっているか
 sleep 3
 "$APP" --send cmd:state

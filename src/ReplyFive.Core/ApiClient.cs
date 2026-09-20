@@ -96,9 +96,6 @@ public sealed class ApiClient
 
     public Task<FormatResponse> Format(FormatRequest body, CancellationToken ct = default) => Send<FormatResponse>(Build(HttpMethod.Post, "v1/format", body, true), ct);
 
-    /// <summary>付録BV：新しく読んだ発言の「発言か」判定。失敗時は呼び出し側が規則だけで保存する。</summary>
-    public Task<ContextFilterResponse> FilterContext(ContextFilterRequest body, CancellationToken ct = default) => Send<ContextFilterResponse>(Build(HttpMethod.Post, "v1/context/filter", body, true), ct);
-
     /// <summary>付録BC：修正率の計測を送る。本文は含まない。呼び出し側は失敗を無視してよい。</summary>
     public Task Feedback(FeedbackRequest body, CancellationToken ct = default) => Send<OkBody>(Build(HttpMethod.Post, "v1/feedback", body, true), ct);
 

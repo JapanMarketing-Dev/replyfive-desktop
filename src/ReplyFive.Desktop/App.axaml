@@ -1,7 +1,7 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="ReplyFive.Desktop.App"
-             RequestedThemeVariant="Light">
+             RequestedThemeVariant="Default">
     <Application.Styles>
         <FluentTheme />
         <Style Selector="Button.primary">
@@ -23,9 +23,54 @@
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Foreground" Value="#2F5BE0" />
         </Style>
+        <Style Selector="Button.gradient">
+            <Setter Property="Background" Value="{DynamicResource RfGradient}" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="16,8" />
+        </Style>
+        <Style Selector="Button.gradient:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource RfGradientHover}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.gradient:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource RfGradientHover}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.gradient:disabled /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource RfGradient}" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Opacity" Value="0.5" />
+        </Style>
+        <Style Selector="Button.chip">
+            <Setter Property="Background" Value="{DynamicResource RfChipFill}" />
+            <Setter Property="Foreground" Value="{DynamicResource RfText}" />
+            <Setter Property="CornerRadius" Value="9" />
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+        <Style Selector="Button.chip:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource RfChipHover}" />
+            <Setter Property="Foreground" Value="{DynamicResource RfText}" />
+        </Style>
+        <Style Selector="Button.chip.on">
+            <Setter Property="Background" Value="{DynamicResource RfGradient}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.chip.on:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource RfGradientHover}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.pill">
+            <Setter Property="CornerRadius" Value="999" />
+            <Setter Property="Padding" Value="9,4" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
         <Style Selector="TextBlock.caption">
             <Setter Property="FontSize" Value="12" />
-            <Setter Property="Foreground" Value="#6B7280" />
+            <Setter Property="Foreground" Value="{DynamicResource RfSecondaryText}" />
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
         <Style Selector="TextBlock.headline">
@@ -35,18 +80,54 @@
         <Style Selector="TextBlock.section">
             <Setter Property="FontSize" Value="12" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="#6B7280" />
+            <Setter Property="Foreground" Value="{DynamicResource RfSecondaryText}" />
             <Setter Property="Margin" Value="0,12,0,4" />
         </Style>
         <Style Selector="Border.card">
-            <Setter Property="Background" Value="White" />
-            <Setter Property="BorderBrush" Value="#E5E7EB" />
+            <Setter Property="Background" Value="{DynamicResource RfCardFill}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource RfCardStroke}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="12" />
             <Setter Property="Padding" Value="14" />
         </Style>
     </Application.Styles>
     <Application.Resources>
-        <SolidColorBrush x:Key="AccentBrush" Color="#3B6CFF" />
+        <ResourceDictionary>
+            <SolidColorBrush x:Key="AccentBrush" Color="#3B6CFF" />
+            <!-- 付録CF-5：アプリアイコンの青→紫 -->
+            <LinearGradientBrush x:Key="RfGradient" StartPoint="0%,0%" EndPoint="100%,100%">
+                <GradientStop Color="#456BFA" Offset="0" />
+                <GradientStop Color="#8C59F2" Offset="1" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="RfGradientHover" StartPoint="0%,0%" EndPoint="100%,100%">
+                <GradientStop Color="#3A5EE6" Offset="0" />
+                <GradientStop Color="#7C4CDE" Offset="1" />
+            </LinearGradientBrush>
+            <ResourceDictionary.ThemeDictionaries>
+                <!-- 付録CF-7：ライト／ダーク。設定画面・初回設定の背景・カード・文字色 -->
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="RfWindowBg" Color="#F7F8FB" />
+                    <SolidColorBrush x:Key="RfCardFill" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="RfCardStroke" Color="#E5E7EB" />
+                    <SolidColorBrush x:Key="RfText" Color="#111827" />
+                    <SolidColorBrush x:Key="RfSecondaryText" Color="#6B7280" />
+                    <SolidColorBrush x:Key="RfChipFill" Color="#EEF0F4" />
+                    <SolidColorBrush x:Key="RfChipHover" Color="#E3E6EC" />
+                    <SolidColorBrush x:Key="RfBubbleOther" Color="#EEF0F4" />
+                    <SolidColorBrush x:Key="RfInputBg" Color="#FFFFFF" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="RfWindowBg" Color="#16181D" />
+                    <SolidColorBrush x:Key="RfCardFill" Color="#1F2229" />
+                    <SolidColorBrush x:Key="RfCardStroke" Color="#2E323B" />
+                    <SolidColorBrush x:Key="RfText" Color="#F3F4F6" />
+                    <SolidColorBrush x:Key="RfSecondaryText" Color="#9CA3AF" />
+                    <SolidColorBrush x:Key="RfChipFill" Color="#2A2E37" />
+                    <SolidColorBrush x:Key="RfChipHover" Color="#343945" />
+                    <SolidColorBrush x:Key="RfBubbleOther" Color="#2A2E37" />
+                    <SolidColorBrush x:Key="RfInputBg" Color="#1F2229" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

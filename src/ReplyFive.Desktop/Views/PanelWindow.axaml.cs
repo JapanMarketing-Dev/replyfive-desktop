@@ -33,7 +33,7 @@ public partial class PanelWindow : Window
         this.vm = vm; this.openSettings = openSettings; this.openTrial = openTrial;
         InitializeComponent();
         AppIcon.Data = Icons.Bubble; ContactIcon.Data = Icons.Person; RecordsIcon.Data = Icons.Sparkles; GearIcon.Data = Icons.Gear;
-        RegIcon.Data = Icons.Key; InactiveIcon.Data = Icons.Warning; VerifiedIcon.Data = Icons.Seal; HintIcon.Data = Icons.Bubble2;
+        RegIcon.Data = Icons.Key; InactiveIcon.Data = Icons.Warning;
         vm.PropertyChanged += OnVmChanged;
         vm.Settings.PropertyChanged += (_, _) => Dispatcher.UIThread.Post(Refresh);
         L10n.Changed += () => Dispatcher.UIThread.Post(Refresh);
@@ -49,8 +49,6 @@ public partial class PanelWindow : Window
         CopyButton.Click += (_, _) => vm.CopyResult();
         RegenerateButton.Click += (_, _) => vm.Generate();
         InsertButton.Click += (_, _) => vm.InsertResult();
-        Candidate0.IsCheckedChanged += (_, _) => { if (Candidate0.IsChecked == true) vm.SelectedCandidate = 0; };
-        Candidate1.IsCheckedChanged += (_, _) => { if (Candidate1.IsChecked == true) vm.SelectedCandidate = 1; };
         Deactivated += (_, _) => { if (IsVisible) HidePanel(); }; // 外をクリックしたら閉じる（macOS 版のマウス監視に相当）
         KeyDown += (_, e) => { if (e.Key == Key.Escape) { HidePanel(); e.Handled = true; } };
         SizeChanged += (_, _) => Reposition();
@@ -201,23 +199,8 @@ public partial class PanelWindow : Window
         {
             ResultLabel.Text = (vm.Phase == Phase.Ready ? L("panel.result.ready") : L("panel.result.draft")).ToUpperInvariant();
             ResultSpinner.IsVisible = vm.Phase == Phase.Drafting;
-            VerifiedBadge.IsVisible = vm.Verified && vm.Phase == Phase.Ready;
-            VerifiedText.Text = L("panel.verified");
-            ToolTip.SetTip(VerifiedBadge, L("panel.verified.help"));
             MetaText.Text = vm.Meta;
-            var cands = vm.Phase == Phase.Ready && vm.CandidateKinds.Count == 2;
-            Candidates.IsVisible = cands;
-            if (cands)
-            {
-                Candidate0.Content = ReplyViewModel.KindLabel(vm.CandidateKinds[0]);
-                Candidate1.Content = ReplyViewModel.KindLabel(vm.CandidateKinds[1]);
-                ToolTip.SetTip(Candidates, L("panel.candidates.help"));
-                if (vm.SelectedCandidate == 0 && Candidate0.IsChecked != true) Candidate0.IsChecked = true;
-                if (vm.SelectedCandidate == 1 && Candidate1.IsChecked != true) Candidate1.IsChecked = true;
-            }
             ResultBox.Opacity = vm.Phase == Phase.Drafting ? 0.6 : 1;
-            HintChip.IsVisible = vm.Hint is not null && vm.Phase == Phase.Ready;
-            HintText.Text = vm.Hint ?? "";
             WarningText.IsVisible = vm.WarningNote is not null;
             WarningText.Text = vm.WarningNote ?? "";
         }

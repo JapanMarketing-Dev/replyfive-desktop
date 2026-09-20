@@ -15,23 +15,21 @@ public sealed class SettingsWindow : Window
 {
     readonly App app;
     AppSettings S => app.Settings;
-    readonly Action onTune;
     readonly Action openStyle;
     readonly StackPanel root = new() { Spacing = 8, Margin = new Thickness(20) };
     readonly DispatcherTimer timer;
     string? serverStatus;
     string? registerError;
-    string? tuningStatus;
 
-    public SettingsWindow(App app, Action onTune, Action openStyle)
+    public SettingsWindow(App app, Action openStyle)
     {
-        this.app = app; this.onTune = onTune; this.openStyle = openStyle;
+        this.app = app; this.openStyle = openStyle;
         Title = L("settings.window_title");
         Width = 560; Height = 760; MinWidth = 520; MinHeight = 400;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         Icon = new WindowIcon(Avalonia.Platform.AssetLoader.Open(new Uri("avares://ReplyFive/Assets/replyfive-64.png")));
         Content = new ScrollViewer { Content = root };
-        Background = new SolidColorBrush(Color.Parse("#F7F8FB"));
+        Bind(BackgroundProperty, this.GetResourceObservable("RfWindowBg"));   // 付録CF-7：ライト／ダーク
         Closing += (_, e) => { e.Cancel = true; Hide(); };
         Opened += (_, _) => { Build(); _ = S.RefreshEntitlement(); };
         timer = new DispatcherTimer(TimeSpan.FromSeconds(1.5), DispatcherPriority.Background, (_, _) => { if (IsVisible) RefreshDynamic(); });
@@ -49,7 +47,7 @@ public sealed class SettingsWindow : Window
     // MARK: - 組み立て
 
     TextBlock? kpiText, sentKpiText, usageText, recordsCountText, convCountText;
-    StackPanel? recentList, tuningList;
+    StackPanel? recentList;
     Button? deleteRecords, deleteConversations;
     PathIcon? accessibilityIcon;
 
@@ -156,16 +154,6 @@ public sealed class SettingsWindow : Window
         recentList = new StackPanel { Spacing = 4 };
         behavior.Children.Add(recentList);
         root.Children.Add(Section(L("settings.behavior.title"), behavior));
-
-        // 返信品質のチューニング
-        var tuning = new StackPanel { Spacing = 6 };
-        var tuneBtn = new Button { Content = L("settings.tuning.button") };
-        var tuneStatus = Cap(tuningStatus ?? "");
-        tuneBtn.Click += (_, _) => { tuningStatus = L("settings.tuning.status"); tuneStatus.Text = tuningStatus; onTune(); RefreshDynamic(); };
-        tuning.Children.Add(Row(Col(tuneBtn, Cap(L("settings.tuning.hint"))), tuneStatus));
-        tuningList = new StackPanel { Spacing = 4 };
-        tuning.Children.Add(tuningList);
-        root.Children.Add(Section(L("settings.tuning.title"), tuning));
 
         // 会話の保持
         var conv = new StackPanel { Spacing = 6 };
@@ -275,20 +263,6 @@ public sealed class SettingsWindow : Window
                 var title = string.Join(" · ", new[] { row.AppName, row.Platform.Wire() }.Where(x => !string.IsNullOrEmpty(x)));
                 var state = row.Action == "insert" ? (row.Sent == true ? L("settings.records.sent") : L("settings.records.inserted")) : L("settings.records.copied");
                 recentList.Children.Add(Row(Col(new TextBlock { Text = title, FontSize = 12, FontWeight = FontWeight.SemiBold }, Cap(state)), Cap(L("settings.records.edit_chars", row.EditChars ?? 0))));
-            }
-        }
-        tuningList!.Children.Clear();
-        var tuning = S.BackgroundEvaluations.Latest();
-        if (tuning.Count > 0)
-        {
-            tuningList.Children.Add(new TextBlock { Text = L("settings.tuning.preview_title"), FontSize = 13, FontWeight = FontWeight.SemiBold });
-            foreach (var row in tuning)
-            {
-                var head = string.Join(" · ", new[] { row.ContactName, row.AppName }.Where(x => !string.IsNullOrEmpty(x)));
-                var col = Col(new TextBlock { Text = head.Length == 0 ? row.Platform?.Wire() ?? "" : head, FontSize = 12, FontWeight = FontWeight.SemiBold });
-                if (!string.IsNullOrEmpty(row.Preview)) col.Children.Add(new SelectableTextBlock { Text = row.Preview, FontSize = 13, TextWrapping = TextWrapping.Wrap });
-                col.Children.Add(new TextBlock { Text = row.Verified ? L("settings.tuning.verified") : L("settings.tuning.pending"), FontSize = 11, Foreground = new SolidColorBrush(Color.Parse(row.Verified ? "#16A34A" : "#6B7280")) });
-                tuningList.Children.Add(col);
             }
         }
     }

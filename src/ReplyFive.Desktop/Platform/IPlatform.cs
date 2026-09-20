@@ -84,6 +84,8 @@ public interface IPlatform
     string OsVersion { get; }
     string DefaultDeviceName { get; }
     string SuggestedUserName { get; }
+    /// <summary>付録CF-9：この端末に入っているアプリと起動中のアプリの表示名（中身・履歴は読まない）。初回設定の自動選択に使う。</summary>
+    IReadOnlyList<string> InstalledAppNames() => [];
 
     /// <summary>会話の読み取り・差し込みに OS の許可や設定が要るか（Linux の AT-SPI 有効化）。Windows は不要。</summary>
     bool NeedsAccessibilitySetup { get; }

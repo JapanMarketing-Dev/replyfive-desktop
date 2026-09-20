@@ -1,10 +1,12 @@
-# Wayland 経路の結合テスト（ヘッドレス）。sway（wlroots の headless バックエンド）の上で GTK3 の会話アプリと ReplyFive を Wayland ネイティブで動かし、
-# AT-SPI の読み取り→サーバ生成→EditableText 差し込みが X11 無しで通ることを確かめる。ショートカットは Portal 無し（X11 も無し）なので --send で開く。
+# Wayland デスクトップ相当の結合テスト（ヘッドレス）。cage 0.1.5（wlroots 0.17 の headless バックエンド。xdg_wm_base v4 と仮想キーボードを持つ。
+# sway 1.9 / labwc 0.7 は xdg_wm_base v2 で Avalonia.Wayland の要件 >=3 を満たさず、weston 13 headless は seat が無く焦点を配れない）の上で、
+# GTK3 の会話アプリと ReplyFive（Avalonia.Wayland 12.1）を Wayland ネイティブで動かし、AT-SPI の読み取り → サーバ生成 → EditableText 差し込みを確かめる。
+# ショートカットの Portal 経路（GNOME / KDE の xdg-desktop-portal）は実機でだけ確認できるので、パネルは --send で開く。
 FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    sway grim wl-clipboard wtype dbus at-spi2-core python3-gi gir1.2-gtk-3.0 \
-    libwayland-client0 libwayland-egl1 libxkbcommon0 libegl1 libgl1 libgles2 mesa-utils libgbm1 \
+    cage wtype wl-clipboard wayland-utils dbus at-spi2-core python3-gi gir1.2-gtk-3.0 \
+    libwayland-client0 libwayland-egl1 libwayland-cursor0 libxkbcommon0 libegl1 libegl-mesa0 libgl1 libgl1-mesa-dri libgles2 libgbm1 \
     libicu74 libfontconfig1 libglib2.0-0 libsecret-1-0 fonts-noto-cjk ca-certificates curl python3 \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /work

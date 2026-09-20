@@ -28,11 +28,17 @@ static class Program
     }
 
     public static AppBuilder BuildAvaloniaApp()
-        => AppBuilder.Configure<App>()
-            .UsePlatformDetect()
+    {
+        var builder = AppBuilder.Configure<App>().UsePlatformDetect();
+        // Linux：Wayland コンポジタがあれば Wayland ネイティブ、無ければ X11（Avalonia.Wayland 12.1）。他 OS では何もしない。
+        // REPLYFIVE_FORCE_WAYLAND=1 は検証用で、Wayland を強制して失敗理由を例外で出す
+        if (OperatingSystem.IsLinux())
+            builder = Environment.GetEnvironmentVariable("REPLYFIVE_FORCE_WAYLAND") == "1" ? builder.UseWayland() : builder.UseWaylandWithFallback();
+        return builder
 #if DEBUG
             .WithDeveloperTools()
 #endif
             .WithInterFont()
             .LogToTrace();
+    }
 }

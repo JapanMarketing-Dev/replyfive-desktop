@@ -32,6 +32,9 @@ public sealed partial class AppSettings : ObservableObject
         uiLanguage = Str("uiLanguage") ?? "system";
         reviewBeforeInsert = Bool("reviewBeforeInsert") ?? false;
         onboardingDone = Bool("onboardingDone") ?? false;
+        termsAcceptedVersion = Str("termsAcceptedVersion");
+        selectedPlatforms = StrList("selectedPlatforms");
+        appearance = Str("appearance") ?? "system";
         styleOnboardingDone = Bool("styleOnboardingDone") ?? false;
         styleProfile = Obj<StyleProfile>("styleProfile");
         autoUpdate = Bool("autoUpdate") ?? true;
@@ -63,6 +66,7 @@ public sealed partial class AppSettings : ObservableObject
 
     string? Str(string key) => d[key] is JsonValue v && v.TryGetValue<string>(out var s) ? s : null;
     bool? Bool(string key) => d[key] is JsonValue v && v.TryGetValue<bool>(out var b) ? b : null;
+    List<string> StrList(string key) => d[key] is JsonArray a ? a.Select(x => x is JsonValue v && v.TryGetValue<string>(out var s) ? s : null).OfType<string>().ToList() : [];
     DateTimeOffset? Date(string key) => d[key] is JsonValue v && v.TryGetValue<string>(out var s) && DateTimeOffset.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dt) ? dt : null;
     T? Obj<T>(string key) where T : class
     {
@@ -139,6 +143,20 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] bool onboardingDone;
     partial void OnOnboardingDoneChanged(bool value) => Put("onboardingDone", value);
     /// <summary>付録CD：「返し方」の収集と最適化まで終えたか。</summary>
+    /// <summary>付録CF-6：同意した利用規約・プライバシーポリシーの版（Legal.Version と違えば同意ページを出す）</summary>
+    [ObservableProperty] string? termsAcceptedVersion;
+    partial void OnTermsAcceptedVersionChanged(string? value) => Put("termsAcceptedVersion", value);
+    /// <summary>付録CF-8：初回設定で選んだ普段使うアプリ（AppCatalog の id）</summary>
+    [ObservableProperty] List<string> selectedPlatforms = [];
+    partial void OnSelectedPlatformsChanged(List<string> value) => Put("selectedPlatforms", new System.Text.Json.Nodes.JsonArray(value.Select(v => (System.Text.Json.Nodes.JsonNode?)v).ToArray()));
+    /// <summary>付録CF-7：外観（system / light / dark）</summary>
+    [ObservableProperty] string appearance = "system";
+    partial void OnAppearanceChanged(string value) { Put("appearance", value); ApplyAppearance(value); }
+    public static void ApplyAppearance(string value)
+    {
+        if (Avalonia.Application.Current is not { } app) return;
+        app.RequestedThemeVariant = value switch { "light" => Avalonia.Styling.ThemeVariant.Light, "dark" => Avalonia.Styling.ThemeVariant.Dark, _ => Avalonia.Styling.ThemeVariant.Default };
+    }
     [ObservableProperty] bool styleOnboardingDone;
     partial void OnStyleOnboardingDoneChanged(bool value) => Put("styleOnboardingDone", value);
     [ObservableProperty] StyleProfile? styleProfile;
@@ -330,11 +348,10 @@ public sealed partial class AppSettings : ObservableObject
 
     byte[]? key;
     byte[] Key => key ??= platform.Secrets.LearningKey();
-    LearningStore? records; ConversationStore? conversations; StyleStore? styleSamples; BackgroundEvaluationStore? evaluations;
+    LearningStore? records; ConversationStore? conversations; StyleStore? styleSamples;
     public LearningStore Records => records ??= new LearningStore(AppPaths.LearningFile, Key);
     public ConversationStore Conversations => conversations ??= new ConversationStore(AppPaths.ConversationsFile, Key);
     public StyleStore StyleSamples => styleSamples ??= new StyleStore(AppPaths.StyleFile, Key);
-    public BackgroundEvaluationStore BackgroundEvaluations => evaluations ??= new BackgroundEvaluationStore(AppPaths.EvaluationsFile, Key);
 
     public string InstallId
     {

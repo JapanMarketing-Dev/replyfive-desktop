@@ -28,7 +28,7 @@ internal static class WinInsert
         var element = context.FocusedElement as AutomationElement;
         if (element is not null && WinUia.ProcessIdOf(element) == app.Pid && StillFocused(automation, element, app) && WinUia.IsEditable(element))
         {
-            switch (Direct(element, text))
+            switch (await Direct(element, text).ConfigureAwait(false))
             {
                 case DirectResult.Inserted: return true;
                 case DirectResult.Uncertain: platform.CopyToClipboard(text); return false;
@@ -40,7 +40,7 @@ internal static class WinInsert
 
     // MARK: - 直接書き込み
 
-    static DirectResult Direct(AutomationElement element, string text)
+    static async Task<DirectResult> Direct(AutomationElement element, string text)
     {
         var pattern = WinUia.ValuePatternOf(element);
         if (pattern is null || WinUia.ReadOnly(pattern)) return DirectResult.Unavailable;
@@ -53,11 +53,27 @@ internal static class WinInsert
         var composed = Compose(element, before, text) ?? before + text;
         try { pattern.SetValue(composed); }
         catch (Exception) { return DirectResult.Unavailable; }
-        var after = WinUia.ValueOf(element);
+        var after = await ReadBack(element, before, text).ConfigureAwait(false);
         if (after is null) return DirectResult.Uncertain;
         if (after.Contains(text, StringComparison.Ordinal) && (after != before || selectedBefore == text)) return DirectResult.Inserted;
         if (after == before) return DirectResult.NoEffect;
         return DirectResult.Uncertain;
+    }
+
+    /// <summary>書き込んだ直後の値を読み直す。アプリによっては（Chromium の入力欄など）UIA の値の更新が一拍遅れ、
+    /// 直後に読むと書き込み前の値が返る。それを「変わっていない」と受け取って貼り付けへ進むと同じ返信が二重に入るので、
+    /// 変化が見えるまで短い間だけ読み直す。</summary>
+    static async Task<string?> ReadBack(AutomationElement element, string? before, string text)
+    {
+        string? after = null;
+        for (var i = 0; i < 10; i++)
+        {
+            after = WinUia.ValueOf(element);
+            if (after is null) return null;
+            if (after.Contains(text, StringComparison.Ordinal) || after != before) return after;
+            await Task.Delay(40).ConfigureAwait(false);
+        }
+        return after;
     }
 
     /// <summary>カーソル位置（選択範囲）へ入れた値を組み立てる。UIA には「挿入」が無く値の差し替えしかないので、

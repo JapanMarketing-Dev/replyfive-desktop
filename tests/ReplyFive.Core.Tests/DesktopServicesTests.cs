@@ -36,7 +36,7 @@ public class L10nTests
                 Assert.DoesNotContain("⌘", L10n.Get("panel.notice.copied_paste"));
                 Assert.DoesNotContain("Mac", L10n.Get("settings.records.count"));
                 Assert.DoesNotContain("Mac", L10n.Get("onboarding.name.body"));
-                Assert.True(L10n.Has("kind.accept"));
+                Assert.True(L10n.Has("panel.status.ready"));
             }
         L10n.Apply("ja", "windows");
         Assert.Equal("Windows の設定に合わせる", L10n.Get("settings.ui_language.system"));

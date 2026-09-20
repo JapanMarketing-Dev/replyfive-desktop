@@ -9,6 +9,31 @@ namespace ReplyFive.Desktop.Platform.Windows;
 /// 鍵は DPAPI、画面の文字認識は Windows の OCR。会話アプリが前面のときだけ、会話のペインだけを読む（付録BQ・BR・BU）。</summary>
 public sealed class WindowsPlatform : IPlatform
 {
+    /// <summary>付録CF-9：スタートメニューのショートカット名、Uninstall の DisplayName、起動中プロセスの名前（中身は読まない）。</summary>
+    public IReadOnlyList<string> InstalledAppNames()
+    {
+        var names = new List<string>();
+        foreach (var root in new[] { Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu), Environment.GetFolderPath(Environment.SpecialFolder.StartMenu) })
+        {
+            try { if (Directory.Exists(root)) names.AddRange(Directory.EnumerateFiles(root, "*.lnk", SearchOption.AllDirectories).Select(Path.GetFileNameWithoutExtension).OfType<string>()); } catch (Exception) { }
+        }
+        foreach (var (hive, path) in new[] { (Microsoft.Win32.Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"), (Microsoft.Win32.Registry.LocalMachine, @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"), (Microsoft.Win32.Registry.CurrentUser, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall") })
+        {
+            try
+            {
+                using var key = hive.OpenSubKey(path);
+                if (key is null) continue;
+                foreach (var sub in key.GetSubKeyNames())
+                {
+                    try { using var k = key.OpenSubKey(sub); if (k?.GetValue("DisplayName") is string n && n.Length > 0) names.Add(n); } catch (Exception) { }
+                }
+            }
+            catch (Exception) { }
+        }
+        try { names.AddRange(System.Diagnostics.Process.GetProcesses().Select(p => p.ProcessName)); } catch (Exception) { }
+        return names;
+    }
+
     public string OsName => "windows";
     public string OsVersion { get; } = DescribeOs();
     public string DefaultDeviceName => Environment.MachineName is { Length: > 0 } m ? m : "Windows";

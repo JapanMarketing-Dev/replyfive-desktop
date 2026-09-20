@@ -150,26 +150,12 @@
 
                 <!-- 結果欄（Alt+Return や失敗時） -->
                 <StackPanel Name="ResultArea" Spacing="6" IsVisible="False">
-                    <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto">
+                    <Grid ColumnDefinitions="Auto,Auto,*,Auto">
                         <TextBlock Grid.Column="0" Name="ResultLabel" Classes="tiny" FontWeight="SemiBold" VerticalAlignment="Center" />
                         <ProgressBar Grid.Column="1" Name="ResultSpinner" IsIndeterminate="True" Width="40" Height="4" Margin="8,0,0,0" IsVisible="False" VerticalAlignment="Center" />
-                        <StackPanel Grid.Column="2" Name="VerifiedBadge" Orientation="Horizontal" Spacing="4" Margin="8,0,0,0" IsVisible="False" VerticalAlignment="Center">
-                            <PathIcon Name="VerifiedIcon" Width="12" Height="12" Foreground="#4ADE80" />
-                            <TextBlock Name="VerifiedText" Classes="tiny" Foreground="#4ADE80" />
-                        </StackPanel>
-                        <TextBlock Grid.Column="4" Name="MetaText" Classes="tiny" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="3" Name="MetaText" Classes="tiny" VerticalAlignment="Center" />
                     </Grid>
-                    <StackPanel Name="Candidates" Orientation="Horizontal" Spacing="4" IsVisible="False">
-                        <RadioButton Name="Candidate0" Classes="segment" GroupName="cand" IsChecked="True" />
-                        <RadioButton Name="Candidate1" Classes="segment" GroupName="cand" />
-                    </StackPanel>
                     <TextBox Name="ResultBox" Classes="glass" MinHeight="60" MaxHeight="220" />
-                    <Border Name="HintChip" Background="#1FFF9F1C" CornerRadius="12" Padding="10,5" HorizontalAlignment="Left" IsVisible="False">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <PathIcon Name="HintIcon" Width="12" Height="12" Foreground="#FF9F1C" />
-                            <TextBlock Name="HintText" FontSize="11" FontWeight="Medium" Foreground="#FFB454" TextWrapping="Wrap" MaxWidth="440" />
-                        </StackPanel>
-                    </Border>
                     <TextBlock Name="WarningText" Classes="tiny" TextWrapping="Wrap" IsVisible="False" />
                 </StackPanel>
 

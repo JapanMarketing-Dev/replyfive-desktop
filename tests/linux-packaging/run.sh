@@ -7,5 +7,5 @@ ENGINE="${ENGINE:-podman}"
 ARCH="${ARCH:-$(uname -m)}"
 case "$ARCH" in arm64|aarch64) RID=linux-arm64 ;; *) RID=linux-x64 ;; esac
 [ -x "$ROOT/dist/$RID/ReplyFive" ] || { echo "dist/$RID/ReplyFive が無い。先に dotnet publish する（docs/desktop-tech-stack.md）"; exit 1; }
-$ENGINE build -t replyfive-linux-pkg "$HERE"
+$ENGINE build -f "$HERE/Containerfile" -t replyfive-linux-pkg "$HERE"
 $ENGINE run --rm -e VERSION="${VERSION:-0.8.0}" -v "$ROOT:/src:ro" -v "$ROOT/dist:/work/dist" replyfive-linux-pkg

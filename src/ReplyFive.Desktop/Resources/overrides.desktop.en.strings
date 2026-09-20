@@ -24,12 +24,14 @@
 "onboarding.name.body" = "Shown as the user of this device in your organization's admin console, and used to tell your own messages from the other person's. Not used for anything else.";
 "onboarding.name.required" = "Enter your name. It appears as the user of this device in your organization's admin console and keeps your own messages apart from theirs.";
 "onboarding.records.body" = "ReplyFive keeps a record of the replies you insert, encrypted on this device, so later replies to the same person match how you write. You can turn this off in Settings.";
-"onboarding.step3.body" = "Place the cursor in the reply field, then press %@ to open ReplyFive. Type what you want to say and press Enter to insert the reply. Review it before sending.";
-"style.intro" = "ReplyFive does not know how you write yet. Reply to these three messages the way you actually would. Your replies stay on this device and are sent once to work out your style; the server does not keep them.";
-"style.privacy" = "These replies are encrypted on this device. They are sent once to work out your writing style and are not stored on the server.";
+"style.privacy" = "Conversations stay encrypted on this computer. They are sent once to read how you reply and are not kept on the server.";
 "update.ready.toast" = "ReplyFive %@ is ready. Update from the tray icon.";
 "update.error.signature" = "The downloaded installer is not signed by JapanMarketing.";
 "update.error.not_writable" = "ReplyFive cannot update itself here. Download the new version and install it.";
 "settings.update.auto.hint" = "When a new version is ready and you have not used ReplyFive for 10 minutes, it is installed and relaunched on its own. Your settings are kept.";
 "panel.context.reading_body" = "This app does not share text directly, so ReplyFive is reading what is on screen. It appears here in a moment; you can start typing.";
 "settings.update.store" = "Updates are delivered through the store you installed ReplyFive from.";
+"onboarding.consent.keeps" = "Conversations and your replies are kept encrypted on this computer.";
+"onboarding.apps.detected" = "%d picked automatically from the apps on this computer";
+"panel.context.stored" = "Continuing the conversation kept on this computer (%d messages, yours and theirs)";
+"settings.server.invalid_url" = "Enter an HTTPS server URL. HTTP is supported only for a development server on this computer.";

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<title>#general - JapanMarketing - Slack</title>
+<style>
+body{margin:0;font-family:Segoe UI,Meiryo,sans-serif;display:flex;height:100vh;background:#fff;color:#1d1c1d}
+nav{width:220px;background:#3f0e40;color:#fff;padding:16px;box-sizing:border-box}
+nav div{padding:6px 8px;border-radius:6px}nav .sel{background:#1164a3}
+main{flex:1;display:flex;flex-direction:column}
+header{padding:10px 16px;border-bottom:1px solid #ddd;font-weight:700}
+#messages{flex:1;overflow:auto;padding:16px}
+.msg{margin-bottom:14px}.msg b{display:block}.msg span{display:block}
+footer{padding:12px 16px;border-top:1px solid #ddd}
+textarea{width:100%;height:64px;box-sizing:border-box;font:inherit;padding:8px;border:1px solid #888;border-radius:6px}
+small{color:#666}
+</style></head>
+<body>
+<nav><div>JapanMarketing</div><div class="sel"># general</div><div># random</div><div>山田 太郎</div><div>佐藤 花子</div></nav>
+<main>
+<header># general</header>
+<div id="messages">
+<div class="msg"><b>山田</b><span>リリース日の件、どうなりそうですか？</span></div>
+<div class="msg"><b>遠藤</b><span>10/22なら間に合います。</span></div>
+<div class="msg"><b>山田</b><span>了解です。資料は前日までに共有してください。</span></div>
+</div>
+<footer><textarea id="reply" aria-label="Message #general" placeholder="Message #general"></textarea>
+<small>app.slack.com/client/T0/C0</small></footer>
+</main>
+<script>
+// 差し込みの検証用：返信欄の内容が変わるたびに見出しの data 属性へ写す（UIA から読める）
+const t=document.getElementById('reply');
+t.addEventListener('input',()=>{document.querySelector('header').setAttribute('aria-description', t.value)});
+t.focus();
+</script>
+</body></html>

@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 namespace ReplyFive.Core;
 
 /// <summary>付録BV：画面から読んだ行のうち、人が書いた発言ではないもの（UI の操作語・添付チップ・日付区切り・既読・引用見出し・システム通知）を規則で落とす。
-/// ここで落ちなかったものはサーバの Jev 判定（POST /v1/context/filter）に回し、残ったものだけを端末内の記録に保存する。</summary>
+/// ここで落ちなかったものを端末内の記録に保存する。</summary>
 public static class ConversationNoise
 {
     static readonly HashSet<string> exact =
@@ -46,7 +46,7 @@ public static class ConversationNoise
         => string.Join("\n", text.Split('\n').Where(l => l.Length > 0 && !IsNoise(l)));
 }
 
-/// <summary>宛名の決定に使う端末側の補助。生成結果の宛名検証はサーバ側の Jev 検証（付録BN）に任せ、端末側では生成結果を捨てない。</summary>
+/// <summary>宛名の決定に使う端末側の補助。端末側では生成結果を捨てない。</summary>
 public static class ReplyNameSafety
 {
     static readonly string[] markers = ["×", "チャンネル", "チーム", "グループ", "トークルーム", "room", "channel", "株式会社", "合同会社", "法人", "事務所", "お問い合わせ先", "プレビュー", "管理者", "参加しています", "メッセージ検索"];

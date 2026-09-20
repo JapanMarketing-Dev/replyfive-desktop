@@ -9,6 +9,17 @@ namespace ReplyFive.Desktop.Platform.Mac;
 /// 会話はクリップボードから、差し込みはコピーまで。ショートカットは登録しない（トレイ／メニューから開く）。</summary>
 public sealed class MacDevPlatform : IPlatform
 {
+    /// <summary>付録CF-9：/Applications 等の .app の表示名（開発確認用）。</summary>
+    public IReadOnlyList<string> InstalledAppNames()
+    {
+        var names = new List<string>();
+        foreach (var dir in new[] { "/Applications", "/System/Applications", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Applications") })
+        {
+            try { if (Directory.Exists(dir)) names.AddRange(Directory.EnumerateDirectories(dir, "*.app").Select(Path.GetFileNameWithoutExtension).OfType<string>()); } catch (Exception) { }
+        }
+        return names;
+    }
+
     public string OsName => "macos";
     public string OsVersion => Environment.OSVersion.VersionString;
     public string DefaultDeviceName => "Mac (dev)";

@@ -40,18 +40,18 @@ modules:
       # Flathub のビルドは秘密値も環境変数も無いので Sentry DSN は渡さない（DSN は秘密ではないが、渡すならこのマニフェストに直書き）
       - |
         case "$FLATPAK_ARCH" in x86_64) RID=linux-x64;; aarch64) RID=linux-arm64;; *) echo "unsupported $FLATPAK_ARCH"; exit 1;; esac
-        dotnet publish clients/desktop/src/ReplyFive.Desktop -c Release -f net10.0 -r "$RID" --self-contained --source ./nuget-sources -o /app/lib/replyfive
+        dotnet publish src/ReplyFive.Desktop -c Release -f net10.0 -r "$RID" --self-contained --source ./nuget-sources -o /app/lib/replyfive
       - |
         mkdir -p /app/bin
         printf '#!/bin/sh\nexec /app/lib/replyfive/ReplyFive "$@"\n' > /app/bin/ReplyFive
         chmod 755 /app/bin/ReplyFive
-      - install -Dm644 clients/desktop/packaging/linux/app.replyfive.ReplyFive.desktop /app/share/applications/app.replyfive.ReplyFive.desktop
-      - install -Dm644 clients/desktop/packaging/linux/app.replyfive.ReplyFive.metainfo.xml /app/share/metainfo/app.replyfive.ReplyFive.metainfo.xml
-      - install -Dm644 clients/desktop/packaging/linux/icons/replyfive-256.png /app/share/icons/hicolor/256x256/apps/app.replyfive.ReplyFive.png
-      - install -Dm644 clients/desktop/packaging/linux/icons/replyfive-512.png /app/share/icons/hicolor/512x512/apps/app.replyfive.ReplyFive.png
+      - install -Dm644 packaging/linux/app.replyfive.ReplyFive.desktop /app/share/applications/app.replyfive.ReplyFive.desktop
+      - install -Dm644 packaging/linux/app.replyfive.ReplyFive.metainfo.xml /app/share/metainfo/app.replyfive.ReplyFive.metainfo.xml
+      - install -Dm644 packaging/linux/icons/replyfive-256.png /app/share/icons/hicolor/256x256/apps/app.replyfive.ReplyFive.png
+      - install -Dm644 packaging/linux/icons/replyfive-512.png /app/share/icons/hicolor/512x512/apps/app.replyfive.ReplyFive.png
     sources:
       - type: git
-        url: https://github.com/JapanMarketing-Dev/ReplyFive.git
+        url: https://github.com/JapanMarketing-Dev/replyfive-desktop.git   # 公開ミラー（packaging/publish-source.sh、付録CH-2）
         tag: desktop-v0.8.0
         commit: REPLACE_COMMIT
       - nuget-sources.json

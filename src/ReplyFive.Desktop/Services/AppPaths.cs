@@ -29,7 +29,6 @@ public static class AppPaths
     public static string LearningFile => Path.Combine(DataDir, "learning.bin");
     public static string ConversationsFile => Path.Combine(DataDir, "conversations.bin");
     public static string StyleFile => Path.Combine(DataDir, "style.bin");
-    public static string EvaluationsFile => Path.Combine(DataDir, "background-evaluations.bin");
     public static string EventsFile => Path.Combine(DataDir, "events.jsonl");
     public static string UpdatesDir => Path.Combine(DataDir, "updates");
 
